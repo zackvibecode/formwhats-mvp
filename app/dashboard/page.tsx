@@ -384,11 +384,18 @@ function FormCard({
 
         <div className="flex shrink-0 sm:flex-col sm:items-end">
           <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 sm:flex-col sm:gap-1">
-            <div className="flex h-24 w-24 items-center justify-center rounded-xl bg-white">
+            {/* QR is 120px on mobile (easier cross-device scan) and 96px
+                on desktop where the card has less vertical room. */}
+            <div className="flex h-32 w-32 items-center justify-center rounded-xl bg-white sm:h-24 sm:w-24">
               {origin ? (
-                <QRCodeSVG value={publicFormUrl} size={88} level="M" />
+                <QRCodeSVG
+                  value={publicFormUrl}
+                  size={120}
+                  level="M"
+                  className="h-full w-full"
+                />
               ) : (
-                <div className="h-22 w-22 animate-pulse rounded bg-gray-100" />
+                <div className="h-full w-full animate-pulse rounded bg-gray-100" />
               )}
             </div>
             <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 sm:text-center">
@@ -396,6 +403,7 @@ function FormCard({
             </span>
           </div>
         </div>
+
       </div>
 
       {/* Actions */}

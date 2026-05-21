@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
 import ButtonLink from "@/components/button-link";
 import BuilderShell from "@/components/builder/builder-shell";
 import BuilderTopbar from "@/components/builder/builder-topbar";
@@ -120,6 +121,15 @@ export default function EditFormPage({ params }: EditFormPageProps) {
   // Currently selected field id -- powers the right Field Settings panel.
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
 
+  // Snapshot of field row UUIDs that existed in the DB at load time.
+  // We use this on save to figure out which rows to UPDATE (already in DB),
+  // which to INSERT (added by the user since loading), and which to DELETE
+  // (removed by the user since loading). Preserving UUIDs of existing rows
+  // means older responses (whose data_json is keyed by field UUID) keep
+  // mapping to the right field labels.
+  const initialFieldIdsRef = useRef<string[]>([]);
+
+
   // Clear success banner the moment user changes anything.
   useEffect(() => {
     if (saveSuccess) setSaveSuccess(false);
@@ -185,24 +195,28 @@ export default function EditFormPage({ params }: EditFormPageProps) {
         return;
       }
 
-      setFields(
-        (fieldRows ?? []).map((r) => {
-          const rawOptions = (r as { options_json?: unknown }).options_json;
-          const options = Array.isArray(rawOptions)
-            ? (rawOptions as unknown[]).map((o) => String(o))
-            : [];
-          const rawImageUrl = (r as { image_url?: unknown }).image_url;
-          return {
-            id: r.id as string,
-            label: r.label as string,
-            type: r.field_type as FieldType,
-            required: !!r.required,
-            options,
-            image_url: typeof rawImageUrl === "string" ? rawImageUrl : "",
-          };
-        }),
-      );
+      const normalizedRows = (fieldRows ?? []).map((r) => {
+        const rawOptions = (r as { options_json?: unknown }).options_json;
+        const options = Array.isArray(rawOptions)
+          ? (rawOptions as unknown[]).map((o) => String(o))
+          : [];
+        const rawImageUrl = (r as { image_url?: unknown }).image_url;
+        return {
+          id: r.id as string,
+          label: r.label as string,
+          type: r.field_type as FieldType,
+          required: !!r.required,
+          options,
+          image_url: typeof rawImageUrl === "string" ? rawImageUrl : "",
+        };
+      });
+
+      setFields(normalizedRows);
+      // Snapshot DB-known field UUIDs for later diff in handleSave().
+      initialFieldIdsRef.current = normalizedRows.map((r) => r.id);
+
       setIsLoading(false);
+
     }
 
     load();
@@ -358,49 +372,100 @@ export default function EditFormPage({ params }: EditFormPageProps) {
       return;
     }
 
-    // MVP strategy: wipe + reinsert form_fields. Acceptable trade-off; row
-    // ids change but data_json keys on existing responses still refer to
-    // old ids -- so old responses keep their answers, just unlabelled.
-    const { error: deleteErr } = await supabase
-      .from("form_fields")
-      .delete()
-      .eq("form_id", loadedForm.id);
+    // Diff against the snapshot taken at load time so we PRESERVE existing
+    // field row UUIDs. Customer responses store answers keyed by field UUID,
+    // so reusing UUIDs means old responses still map to the right labels
+    // after an edit (instead of showing "-" everywhere).
+    const initialIds = new Set(initialFieldIdsRef.current);
+    const currentIds = new Set(fields.map((f) => f.id));
 
-    if (deleteErr) {
-      console.error("Failed to clear form_fields", deleteErr);
-      setSaveError("Failed to update form. Please try again.");
-      setIsSaving(false);
-      return;
+    const idsToDelete = [...initialIds].filter((id) => !currentIds.has(id));
+    const fieldsToUpdate = fields.filter((f) => initialIds.has(f.id));
+    const fieldsToInsert = fields.filter((f) => !initialIds.has(f.id));
+
+    // 1. Delete any field rows the user removed from the canvas.
+    if (idsToDelete.length > 0) {
+      const { error: delErr } = await supabase
+        .from("form_fields")
+        .delete()
+        .in("id", idsToDelete);
+      if (delErr) {
+        console.error("Failed to delete removed fields", delErr);
+        setSaveError("Failed to update form. Please try again.");
+        setIsSaving(false);
+        return;
+      }
     }
 
-    const rows = fields.map((field, index) => ({
-      form_id: loadedForm.id,
-      label: field.label,
-      field_key: generateFieldKey(field.label, field.id),
-      field_type: field.type,
-      required: field.required,
-      sort_order: index,
-      options_json: field.options ?? [],
-      image_url:
-        field.image_url && field.image_url.trim() !== ""
-          ? field.image_url.trim()
-          : null,
-    }));
-
-    const { error: insertErr } = await supabase
-      .from("form_fields")
-      .insert(rows);
-
-    if (insertErr) {
-      console.error("Failed to insert form_fields", insertErr);
-      setSaveError("Failed to update form. Please try again.");
-      setIsSaving(false);
-      return;
+    // 2. Update existing field rows in place. We do one UPDATE per row to
+    //    keep the SQL straightforward; volumes here are small (form has
+    //    typically <20 fields) so the round-trips are negligible.
+    for (const field of fieldsToUpdate) {
+      const sortOrder = fields.findIndex((f) => f.id === field.id);
+      const { error: updErr } = await supabase
+        .from("form_fields")
+        .update({
+          label: field.label,
+          field_key: generateFieldKey(field.label, field.id),
+          field_type: field.type,
+          required: field.required,
+          sort_order: sortOrder,
+          options_json: field.options ?? [],
+          image_url:
+            field.image_url && field.image_url.trim() !== ""
+              ? field.image_url.trim()
+              : null,
+        })
+        .eq("id", field.id)
+        .eq("form_id", loadedForm.id);
+      if (updErr) {
+        console.error("Failed to update field", updErr);
+        setSaveError("Failed to update form. Please try again.");
+        setIsSaving(false);
+        return;
+      }
     }
+
+    // 3. Insert any brand-new fields the user added since loading.
+    if (fieldsToInsert.length > 0) {
+      const insertRows = fieldsToInsert.map((field) => {
+        const sortOrder = fields.findIndex((f) => f.id === field.id);
+        return {
+          // Provide our locally-generated UUID so we control the id and can
+          // keep the React UI in sync without re-fetching after save.
+          id: field.id,
+          form_id: loadedForm.id,
+          label: field.label,
+          field_key: generateFieldKey(field.label, field.id),
+          field_type: field.type,
+          required: field.required,
+          sort_order: sortOrder,
+          options_json: field.options ?? [],
+          image_url:
+            field.image_url && field.image_url.trim() !== ""
+              ? field.image_url.trim()
+              : null,
+        };
+      });
+      const { error: insErr } = await supabase
+        .from("form_fields")
+        .insert(insertRows);
+      if (insErr) {
+        console.error("Failed to insert new fields", insErr);
+        setSaveError("Failed to update form. Please try again.");
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    // Update the snapshot so a subsequent save in the same session diffs
+    // against the now-current set of field row UUIDs.
+    initialFieldIdsRef.current = fields.map((f) => f.id);
 
     setSaveSuccess(true);
     setIsSaving(false);
   }
+
 
   // --- Render branches ----------------------------------------------------
 

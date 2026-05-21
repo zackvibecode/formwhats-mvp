@@ -80,6 +80,16 @@ function buildWhatsAppLink(
   return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
 }
 
+// Mobile-safe WhatsApp opener.
+// Using same-tab navigation (window.location.href) is more reliable on mobile
+// browsers than window.open(..., "_blank"), which can be blocked by popup
+// blockers when triggered after an async operation (e.g. Supabase insert).
+function openWhatsAppLink(link: string) {
+  if (typeof window === "undefined") return;
+  window.location.href = link;
+}
+
+
 // --- Page ------------------------------------------------------------------
 
 type PublicFormPageProps = {
@@ -99,10 +109,12 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitStatus, setSubmitStatus] = useState<
-    "" | "opening" | "no_number"
+    "" | "saving" | "opening" | "no_number" | "error"
   >("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [pendingWhatsAppLink, setPendingWhatsAppLink] = useState("");
+
 
   // Fetch form by slug, then its fields
   useEffect(() => {
@@ -230,7 +242,8 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
     // 2. Build message + link
     setIsSubmitting(true);
     setSubmitError("");
-    setSubmitStatus("");
+    setSubmitStatus("saving");
+    setPendingWhatsAppLink("");
 
     const whatsappMessage = buildWhatsAppMessage(form, fields, answers);
     const whatsappLink = buildWhatsAppLink(form, whatsappMessage);
@@ -241,38 +254,50 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
       return;
     }
 
-    // 3. Save response to Supabase
-    const { data: insertedResponse, error: insertError } = await supabase
+    // 3. Save response to Supabase.
+    // IMPORTANT: do NOT chain `.select(...).single()` here. Public/anonymous
+    // visitors of the form do not have RLS SELECT permission on `responses`
+    // (only the form owner does). If we try to read back the inserted row,
+    // the response is filtered out by RLS and the call appears to "fail"
+    // even though the insert itself succeeded. Insert-only is enough.
+    const { error: insertError } = await supabase
       .from("responses")
       .insert({
         form_id: form.id,
         data_json: answers,
         whatsapp_message: whatsappMessage,
-      })
-      .select("id")
-      .single();
+      });
 
-    if (insertError || !insertedResponse) {
+    if (insertError) {
       console.error("Failed to save response", insertError);
       setSubmitError("Failed to save response. Please try again.");
+      setSubmitStatus("error");
       setIsSubmitting(false);
       return;
     }
 
-    // 4. Success: log + open WhatsApp
-    console.log({
-      formSlug: form.slug,
-      formId: form.id,
-      responseId: insertedResponse.id,
-      answers,
-      whatsappMessage,
-      whatsappLink,
-    });
+    // 4. Success: open WhatsApp via same-tab navigation.
+    // Same-tab redirect (window.location.href) is reliable on mobile and
+    // does not get blocked by popup blockers like window.open(_, "_blank").
+    // No PII is logged in production -- customer answers stay out of the
+    // browser console.
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[FormWhats] submit ok", {
+        formSlug: form.slug,
+        formId: form.id,
+      });
+    }
 
+
+
+    setPendingWhatsAppLink(whatsappLink);
     setSubmitStatus("opening");
-    window.open(whatsappLink, "_blank");
-    setIsSubmitting(false);
+    openWhatsAppLink(whatsappLink);
+    // Note: keep isSubmitting=true while opening, since the page is about to
+    // navigate away. If the redirect is blocked (rare), the manual fallback
+    // link is rendered for the user to tap.
   }
+
 
   function renderFieldInput(field: PublicFormField) {
     const value = answers[field.id] ?? "";
@@ -451,7 +476,19 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
               role="status"
               className="mt-6 rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-brand-dark"
             >
-              Opening WhatsApp...
+              <p>Opening WhatsApp...</p>
+              {pendingWhatsAppLink !== "" && (
+                <p className="mt-1 text-xs text-brand-dark/80">
+                  If WhatsApp does not open,{" "}
+                  <a
+                    href={pendingWhatsAppLink}
+                    className="font-medium underline underline-offset-2"
+                  >
+                    tap here to open WhatsApp manually
+                  </a>
+                  .
+                </p>
+              )}
             </div>
           )}
           {submitStatus === "no_number" && (
@@ -479,9 +516,14 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
               disabled={isSubmitting}
               className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? "Saving response..." : "Continue to WhatsApp"}
+              {submitStatus === "opening"
+                ? "Opening WhatsApp..."
+                : submitStatus === "saving" || isSubmitting
+                  ? "Saving response..."
+                  : "Continue to WhatsApp"}
             </button>
           </div>
+
         </div>
       </div>
     </PageContainer>

@@ -54,8 +54,11 @@ function generateFieldId(): string {
 
 /**
  * Build a URL-safe slug from a form title.
- *   "Yunnan Travel Inquiry" -> "yunnan-travel-inquiry-1712345678"
- * A short timestamp suffix reduces duplicate-slug risk in the unique index.
+ *   "Yunnan Travel Inquiry" -> "yunnan-travel-inquiry-lq3kf2-a91f"
+ *
+ * Suffix combines a base36 timestamp with a 4-char random hex segment.
+ * This avoids collisions in the `forms.slug` unique index when two saves
+ * happen in the same second (previous implementation only used seconds).
  */
 function generateSlug(title: string): string {
   const base = title
@@ -67,9 +70,18 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, "");
 
   const safeBase = base === "" ? "untitled-form" : base;
-  const suffix = Math.floor(Date.now() / 1000).toString();
-  return `${safeBase}-${suffix}`;
+  const timePart = Date.now().toString(36);
+  const randPart =
+    typeof crypto !== "undefined" && "getRandomValues" in crypto
+      ? Array.from(crypto.getRandomValues(new Uint8Array(2)))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("")
+      : Math.floor(Math.random() * 0xffff)
+          .toString(16)
+          .padStart(4, "0");
+  return `${safeBase}-${timePart}-${randPart}`;
 }
+
 
 /**
  * Build a simple snake_case key from a field label.
@@ -367,15 +379,17 @@ ${fieldsBlock}`;
 
     const slug = generateSlug(formTitle);
 
-    // Keep the local debug log for now.
-    console.log({
-      formTitle,
-      formDescription,
-      whatsappNumber,
-      fields,
-    });
+    // Dev-only debug log. Production must not log full form data.
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[FormWhats] saving form", {
+        formTitle,
+        slug,
+        fieldCount: fields.length,
+      });
+    }
 
     // 1. Insert form (claim ownership for current user)
+
     const { data: insertedForm, error: formError } = await supabase
       .from("forms")
       .insert({
