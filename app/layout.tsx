@@ -12,11 +12,33 @@ const montserrat = Montserrat({
   display: "swap",
 });
 
+// Used to resolve relative URLs in OpenGraph/Twitter metadata. Falls back
+// to localhost in dev. Set NEXT_PUBLIC_SITE_URL on Vercel to your prod URL
+// (e.g. https://formwhats-mvp.vercel.app) for correct social previews.
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "FormWhats",
+  metadataBase: new URL(siteUrl),
+  title: "FormWhats — WhatsApp form builder",
   description:
     "Create simple forms that turn customer answers into WhatsApp-ready leads.",
+  icons: {
+    // Next.js 14 also auto-detects app/icon.png and app/apple-icon.png,
+    // but we list them explicitly here so older crawlers and link
+    // unfurlers (Twitter, FB, LinkedIn) pick them up consistently.
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/apple-icon.png",
+  },
+  openGraph: {
+    title: "FormWhats — WhatsApp form builder",
+    description:
+      "Create simple forms that turn customer answers into WhatsApp-ready leads.",
+    images: ["/icon.png"],
+  },
 };
+
 
 export default function RootLayout({
   children,

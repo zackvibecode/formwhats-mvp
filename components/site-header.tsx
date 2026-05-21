@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import ButtonLink from "@/components/button-link";
 import { supabase } from "@/lib/supabase";
+
 
 // Anchor links for landing-page sections. Hrefs use the `/#id` form so
 // they also work when the header is mounted on a non-home route.
@@ -134,14 +136,25 @@ export default function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 w-full border-b border-gray-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
-        {/* Logo */}
+        {/* Logo + wordmark */}
         <Link
           href="/"
-          className="text-lg font-bold tracking-tight text-black transition-opacity hover:opacity-80"
+          className="flex items-center gap-2 transition-opacity hover:opacity-80"
           aria-label="FormWhats home"
         >
-          Form<span className="text-brand">Whats</span>
+          <Image
+            src="/logo.png"
+            alt=""
+            width={32}
+            height={32}
+            priority
+            className="h-8 w-8 rounded-full"
+          />
+          <span className="text-lg font-bold tracking-tight text-black">
+            Form<span className="text-brand">Whats</span>
+          </span>
         </Link>
+
 
         {/* Desktop section links — only useful when logged out (marketing) */}
         {authState !== "authed" && (

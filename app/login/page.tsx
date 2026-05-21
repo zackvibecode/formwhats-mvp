@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+
 
 // --- Reusable class strings -----------------------------------------------
 
@@ -111,12 +113,21 @@ export default function LoginPage() {
     <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gradient-to-b from-brand/5 via-white to-white px-4 py-12">
       <div className="w-full max-w-md">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-          {/* Brand */}
-          <div className="text-center">
+          {/* Brand: logo + wordmark */}
+          <div className="flex items-center justify-center gap-2">
+            <Image
+              src="/logo.png"
+              alt=""
+              width={36}
+              height={36}
+              priority
+              className="h-9 w-9 rounded-full"
+            />
             <span className="text-2xl font-bold tracking-tight text-black">
               Form<span className="text-brand">Whats</span>
             </span>
           </div>
+
 
           <header className="mt-6 text-center">
             <h1 className="text-2xl font-bold tracking-tight text-black">
