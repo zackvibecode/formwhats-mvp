@@ -59,22 +59,19 @@ export default function FieldLibraryPanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  // True while a file is being dragged over the Image dropzone. We use
+  // a ref-counter under the hood (see handlers) so nested drag-enter
+  // events on inner children don't toggle the highlight off prematurely.
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragDepthRef = useRef(0);
 
-  function handleImageClick() {
-    if (isUploading) return;
-    setUploadError("");
-    fileInputRef.current?.click();
-  }
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    // Reset so the same file can be picked again after a failed upload.
-    e.target.value = "";
-    if (!file) return;
-
+  /**
+   * Shared upload pipeline used by BOTH the click-to-pick and drag-and-drop
+   * code paths. Keeps validation + auth + Supabase upload in one place.
+   */
+  async function processFile(file: File) {
     setUploadError("");
     setIsUploading(true);
-
     try {
       const {
         data: { user },
@@ -97,6 +94,57 @@ export default function FieldLibraryPanel({
     }
   }
 
+  function handleImageClick() {
+    if (isUploading) return;
+    setUploadError("");
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Reset so the same file can be picked again after a failed upload.
+    e.target.value = "";
+    if (!file) return;
+    await processFile(file);
+  }
+
+  // --- Drag-and-drop handlers --------------------------------------------
+
+  function handleDragEnter(e: React.DragEvent<HTMLLIElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isUploading) return;
+    dragDepthRef.current += 1;
+    setIsDragOver(true);
+  }
+
+  function handleDragOver(e: React.DragEvent<HTMLLIElement>) {
+    // Required to allow drop events to fire in the browser.
+    e.preventDefault();
+    e.stopPropagation();
+    if (isUploading) return;
+    e.dataTransfer.dropEffect = "copy";
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLLIElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDragOver(false);
+  }
+
+  async function handleDrop(e: React.DragEvent<HTMLLIElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current = 0;
+    setIsDragOver(false);
+    if (isUploading) return;
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    await processFile(file);
+  }
+
+
   return (
     <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <header>
@@ -117,13 +165,25 @@ export default function FieldLibraryPanel({
 
       <ul className="mt-4 flex flex-col gap-2">
         {/* Image upload item -- behaves like a one-click field type but
-            opens a file picker first, then injects a new field on success. */}
-        <li>
+            opens a file picker first, then injects a new field on success.
+            Wrapping <li> doubles as a drag-and-drop dropzone so the user
+            can drag a picture from their desktop straight onto the panel. */}
+        <li
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <button
             type="button"
             onClick={handleImageClick}
             disabled={isUploading}
-            className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-brand/30 bg-brand/5 px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-brand/60 hover:bg-brand/10 hover:shadow-sm active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-60"
+            className={[
+              "group flex w-full cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-60",
+              isDragOver
+                ? "border-brand bg-brand/15 ring-2 ring-brand/30"
+                : "border-brand/30 bg-brand/5 hover:border-brand/60 hover:bg-brand/10",
+            ].join(" ")}
           >
             <span
               aria-hidden
@@ -133,10 +193,16 @@ export default function FieldLibraryPanel({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-black">
-                {isUploading ? "Uploading..." : "Image"}
+                {isUploading
+                  ? "Uploading..."
+                  : isDragOver
+                    ? "Drop image here"
+                    : "Image"}
               </span>
               <span className="block truncate text-[11px] text-gray-500">
-                Upload picture for question
+                {isDragOver
+                  ? "Release to upload"
+                  : "Click or drag picture here"}
               </span>
             </span>
             <span
@@ -147,6 +213,7 @@ export default function FieldLibraryPanel({
             </span>
           </button>
         </li>
+
 
         {uploadError && (
           <li
