@@ -88,9 +88,65 @@ export default function FieldSettingsPanel({
 
   const labelMissing = selectedField.label.trim() === "";
 
+  // Image-only field: a field whose only purpose is to display a picture
+  // on the public form (banner, divider, hero image). Detected by either
+  // an empty label or the legacy "Image question" placeholder, combined
+  // with a non-empty image_url. These fields skip label / type / required
+  // / dropdown editing -- the user is only here to manage the picture.
+  const isImageOnly =
+    !!selectedField.image_url &&
+    selectedField.image_url.trim() !== "" &&
+    (selectedField.label.trim() === "" ||
+      selectedField.label.trim() === "Image question");
+
   function update(patch: Partial<SettingsField>) {
     if (!selectedField || !onUpdateField) return;
     onUpdateField({ ...selectedField, ...patch });
+  }
+
+  // Image-only field: simplified panel that only shows the image editor
+  // (upload / replace / remove). No label, no field type, no required,
+  // no dropdown options. The picture is the whole story.
+  if (isImageOnly) {
+    return (
+      <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <header className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold tracking-tight text-black">
+              Image
+            </h2>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Replace or remove this image.
+            </p>
+          </div>
+          {onClearSelection && (
+            <button
+              type="button"
+              onClick={onClearSelection}
+              className="shrink-0 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-black"
+            >
+              Deselect
+            </button>
+          )}
+        </header>
+        <div className="mt-5">
+          <ImageUrlEditor
+            imageUrl={selectedField.image_url ?? ""}
+            onChange={(next) => {
+              // When the image is removed entirely, also clear the legacy
+              // "Image question" label so the canvas card collapses to a
+              // normal empty short_text instead of looking like a stuck
+              // image placeholder.
+              if (next.trim() === "") {
+                update({ image_url: "", label: "" });
+              } else {
+                update({ image_url: next });
+              }
+            }}
+          />
+        </div>
+      </aside>
+    );
   }
 
   return (
@@ -109,6 +165,7 @@ export default function FieldSettingsPanel({
               : selectedField.label}
           </p>
         </div>
+
         {onClearSelection && (
           <button
             type="button"

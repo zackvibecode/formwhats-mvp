@@ -820,6 +820,58 @@ export default function EditFormPage({ params }: EditFormPageProps) {
                     );
                   }
                   const isSelected = selectedFieldId === field.id;
+                  // Image-only field: thumbnail card, no Edit button.
+                  const isImageOnly =
+                    !!field.image_url &&
+                    field.image_url.trim() !== "" &&
+                    (field.label.trim() === "" ||
+                      field.label.trim() === "Image question");
+
+                  if (isImageOnly) {
+                    return (
+                      <div
+                        onClick={() => setSelectedFieldId(field.id)}
+                        className={[
+                          "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
+                          isSelected
+                            ? "border-brand bg-brand/5 ring-2 ring-brand/30"
+                            : "border-gray-200 bg-white hover:border-brand/30",
+                        ].join(" ")}
+                      >
+                        {dragHandle}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={field.image_url ?? ""}
+                          alt=""
+                          className="h-14 w-20 shrink-0 rounded-lg object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style
+                              .display = "none";
+                          }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-black">
+                            {index + 1}. Image
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-gray-500">
+                            Visual only — no answer collected
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteField(field.id);
+                          }}
+                          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100"
+                          aria-label="Delete image"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       onClick={() => setSelectedFieldId(field.id)}
@@ -882,6 +934,7 @@ export default function EditFormPage({ params }: EditFormPageProps) {
                     </div>
                   );
                 }}
+
               />
             )}
           </div>
