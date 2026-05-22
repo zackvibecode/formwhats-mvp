@@ -337,15 +337,19 @@ export default function EditFormPage({ params }: EditFormPageProps) {
   // uploaded image attached. Default to short_text so the customer has a
   // working input under the picture; user can change type/label later from
   // the right Field Settings panel.
+  // Image-only field: empty label + short_text type. The public form
+  // renders the picture alone (no label, no input) for any field whose
+  // label is blank but has an image_url.
   function handleAddImageFieldFromLibrary(publicUrl: string) {
     const newField: FormField = {
       id: generateFieldId(),
-      label: "Image question",
+      label: "",
       type: "short_text",
       required: false,
       options: [],
       image_url: publicUrl,
     };
+
     setFields((prev) => [...prev, newField]);
     setSelectedFieldId(newField.id);
     setLastAddedLabel("Image");

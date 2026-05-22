@@ -54,12 +54,17 @@ function buildWhatsAppMessage(
   fields: PublicFormField[],
   answers: Record<string, string>,
 ): string {
+  // Image-only fields (label is empty, but image_url is set) are visual
+  // decoration on the public form -- they don't ask for an answer, so
+  // we skip them when building the WhatsApp message body.
   const detailLines = fields
+    .filter((field) => field.label.trim() !== "")
     .map((field) => {
       const raw = (answers[field.id] ?? "").trim();
       return `${field.label}: ${raw === "" ? "-" : raw}`;
     })
     .join("\n");
+
 
   const detailsBlock = fields.length > 0 ? detailLines : "(no fields)";
 
@@ -417,21 +422,43 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
             ) : (
               fields.map((field) => {
                 const error = errors[field.id];
+                // Image-only field: empty label + image_url. Render the
+                // picture by itself, no label, no input. Useful for
+                // promo banners or visual section dividers.
+                const isImageOnly =
+                  field.label.trim() === "" &&
+                  !!field.image_url &&
+                  field.image_url.trim() !== "";
+
+                if (isImageOnly) {
+                  return (
+                    <div key={field.id}>
+                      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={field.image_url ?? ""}
+                          alt=""
+                          className="block h-auto w-full"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={field.id}>
                     {field.image_url && (
                       <div className="mb-2 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {/* Show the image at its natural aspect ratio so
-                            wide banners stay wide and square posters stay
-                            square. No crop, no fixed height -- just full
-                            width inside the form card. */}
                         <img
                           src={field.image_url}
                           alt={field.label}
                           className="block h-auto w-full"
                           onError={(e) => {
-
                             (e.currentTarget as HTMLImageElement).style.display =
                               "none";
                           }}
@@ -457,6 +484,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
                   </div>
                 );
               })
+
             )}
           </div>
 

@@ -345,15 +345,20 @@ ${fieldsBlock}`;
   // uploaded image attached. We give it the short_text type so it has a
   // working input under the picture; the user can change the type/label
   // afterwards from the right Field Settings panel.
+  // Image-only fields: empty label + short_text type. The public form
+  // renders the picture alone (no label, no input) for any field whose
+  // label is blank but has an image_url. Owner can still rename it
+  // afterwards if they want it to behave like a captioned question.
   function handleAddImageFieldFromLibrary(publicUrl: string) {
     const newField: FormField = {
       id: generateFieldId(),
-      label: "Image question",
+      label: "",
       type: "short_text",
       required: false,
       options: [],
       image_url: publicUrl,
     };
+
     setFields((prev) => [...prev, newField]);
     setSelectedFieldId(newField.id);
     setLastAddedLabel("Image");
