@@ -133,8 +133,16 @@ export default function SiteHeader() {
     router.push("/login");
   }
 
+  // Hide the marketing/app navbar on public customer-facing form pages.
+  // Customers see the form as a standalone page so they don't get
+  // confused by the FormWhats brand or "Login" CTAs that aren't theirs.
+  if (pathname?.startsWith("/form/")) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-30 w-full border-b border-gray-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
         {/* Logo + wordmark */}
         <Link
