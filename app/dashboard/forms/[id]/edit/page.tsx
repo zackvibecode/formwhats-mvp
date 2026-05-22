@@ -544,7 +544,9 @@ export default function EditFormPage({ params }: EditFormPageProps) {
           saveLabel="Save Changes"
           onSave={() => handleSave()}
           previewSlug={loadedForm.slug}
+          formId={loadedForm.id}
         />
+
       }
       leftPanel={
         <FieldLibraryPanel

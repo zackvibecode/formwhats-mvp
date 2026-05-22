@@ -149,10 +149,31 @@ export default function FieldLibraryPanel({
     <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <header>
         <h2 className="text-sm font-semibold tracking-tight text-black">
-          Field Library
+          Add Questions
         </h2>
-        <p className="mt-1 text-xs text-gray-500">Add fields to your form.</p>
+        {/* Basic / Advanced tab pair. Advanced is reserved for future
+            features (rating, signature, file uploads, etc.) -- we render
+            it as a disabled tab so the UI hints at what's coming without
+            implying the feature already exists. */}
+        <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1 text-xs">
+          <button
+            type="button"
+            aria-current="page"
+            className="rounded-md bg-white px-3 py-1.5 font-medium text-brand-dark shadow-sm"
+          >
+            Basic
+          </button>
+          <button
+            type="button"
+            disabled
+            title="Coming soon"
+            className="rounded-md px-3 py-1.5 font-medium text-gray-400"
+          >
+            Advanced
+          </button>
+        </div>
       </header>
+
 
       {/* Hidden file input -- driven by the Image button below. */}
       <input
