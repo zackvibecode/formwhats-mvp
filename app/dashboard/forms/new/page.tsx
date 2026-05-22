@@ -341,6 +341,28 @@ ${fieldsBlock}`;
     }
   }
 
+  // Library "Image" button: create a brand-new field that already has the
+  // uploaded image attached. We give it the short_text type so it has a
+  // working input under the picture; the user can change the type/label
+  // afterwards from the right Field Settings panel.
+  function handleAddImageFieldFromLibrary(publicUrl: string) {
+    const newField: FormField = {
+      id: generateFieldId(),
+      label: "Image question",
+      type: "short_text",
+      required: false,
+      options: [],
+      image_url: publicUrl,
+    };
+    setFields((prev) => [...prev, newField]);
+    setSelectedFieldId(newField.id);
+    setLastAddedLabel("Image");
+    window.setTimeout(() => {
+      setLastAddedLabel((current) => (current === "Image" ? "" : current));
+    }, 2500);
+  }
+
+
   async function handleSave() {
     // Mark that the user has attempted to save so inline field-level
     // validation messages start showing from now on.
@@ -461,8 +483,12 @@ ${fieldsBlock}`;
         />
       }
       leftPanel={
-        <FieldLibraryPanel onSelectType={handleAddFieldFromLibrary} />
+        <FieldLibraryPanel
+          onSelectType={handleAddFieldFromLibrary}
+          onUploadImage={handleAddImageFieldFromLibrary}
+        />
       }
+
       rightPanel={
         <FieldSettingsPanel
           selectedField={

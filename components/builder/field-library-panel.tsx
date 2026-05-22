@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import {
   ChatIcon,
   FormIcon,
@@ -7,6 +8,8 @@ import {
   LayersIcon,
   PhoneIcon,
 } from "@/components/landing/icons";
+import { supabase } from "@/lib/supabase";
+import { uploadFieldImage } from "@/lib/upload-field-image";
 
 export type FieldTypeOption =
   | "short_text"
@@ -39,11 +42,61 @@ type FieldLibraryPanelProps = {
    * and scroll to it. Optional -- if not provided, clicks are a no-op.
    */
   onSelectType?: (type: FieldTypeOption) => void;
+  /**
+   * Optional callback when the user uploads an image from the library.
+   * The handler should create a new field on the canvas and pre-fill its
+   * `image_url` with the returned public URL (and auto-select it so the
+   * user can immediately edit the field label).
+   */
+  onUploadImage?: (publicUrl: string) => void;
 };
 
 export default function FieldLibraryPanel({
   onSelectType,
+  onUploadImage,
 }: FieldLibraryPanelProps) {
+  // --- Image upload state -------------------------------------------------
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  function handleImageClick() {
+    if (isUploading) return;
+    setUploadError("");
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Reset so the same file can be picked again after a failed upload.
+    e.target.value = "";
+    if (!file) return;
+
+    setUploadError("");
+    setIsUploading(true);
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        setUploadError("Please login again to upload images.");
+        return;
+      }
+
+      const publicUrl = await uploadFieldImage(file, user.id);
+      onUploadImage?.(publicUrl);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to upload image.";
+      setUploadError(message);
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
     <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <header>
@@ -53,7 +106,57 @@ export default function FieldLibraryPanel({
         <p className="mt-1 text-xs text-gray-500">Add fields to your form.</p>
       </header>
 
+      {/* Hidden file input -- driven by the Image button below. */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       <ul className="mt-4 flex flex-col gap-2">
+        {/* Image upload item -- behaves like a one-click field type but
+            opens a file picker first, then injects a new field on success. */}
+        <li>
+          <button
+            type="button"
+            onClick={handleImageClick}
+            disabled={isUploading}
+            className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-brand/30 bg-brand/5 px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-brand/60 hover:bg-brand/10 hover:shadow-sm active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span
+              aria-hidden
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-base transition-colors group-hover:bg-brand/20"
+            >
+              📷
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-black">
+                {isUploading ? "Uploading..." : "Image"}
+              </span>
+              <span className="block truncate text-[11px] text-gray-500">
+                Upload picture for question
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white"
+            >
+              +
+            </span>
+          </button>
+        </li>
+
+        {uploadError && (
+          <li
+            role="alert"
+            className="rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-[11px] text-red-600"
+          >
+            {uploadError}
+          </li>
+        )}
+
         {items.map((item) => (
           <li key={item.value}>
             <button

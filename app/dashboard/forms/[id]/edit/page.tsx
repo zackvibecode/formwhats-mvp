@@ -333,6 +333,28 @@ export default function EditFormPage({ params }: EditFormPageProps) {
     }
   }
 
+  // Library "Image" button: create a brand-new field that already has the
+  // uploaded image attached. Default to short_text so the customer has a
+  // working input under the picture; user can change type/label later from
+  // the right Field Settings panel.
+  function handleAddImageFieldFromLibrary(publicUrl: string) {
+    const newField: FormField = {
+      id: generateFieldId(),
+      label: "Image question",
+      type: "short_text",
+      required: false,
+      options: [],
+      image_url: publicUrl,
+    };
+    setFields((prev) => [...prev, newField]);
+    setSelectedFieldId(newField.id);
+    setLastAddedLabel("Image");
+    window.setTimeout(() => {
+      setLastAddedLabel((current) => (current === "Image" ? "" : current));
+    }, 2500);
+  }
+
+
   // --- Save: update form + replace form_fields ----------------------------
 
   async function handleSave() {
@@ -521,8 +543,12 @@ export default function EditFormPage({ params }: EditFormPageProps) {
         />
       }
       leftPanel={
-        <FieldLibraryPanel onSelectType={handleAddFieldFromLibrary} />
+        <FieldLibraryPanel
+          onSelectType={handleAddFieldFromLibrary}
+          onUploadImage={handleAddImageFieldFromLibrary}
+        />
       }
+
       rightPanel={
         <FieldSettingsPanel
           selectedField={
