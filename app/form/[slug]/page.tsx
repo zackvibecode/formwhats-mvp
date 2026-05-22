@@ -422,11 +422,16 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
                     {field.image_url && (
                       <div className="mb-2 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {/* Show the image at its natural aspect ratio so
+                            wide banners stay wide and square posters stay
+                            square. No crop, no fixed height -- just full
+                            width inside the form card. */}
                         <img
                           src={field.image_url}
                           alt={field.label}
-                          className="block max-h-[220px] w-full object-cover"
+                          className="block h-auto w-full"
                           onError={(e) => {
+
                             (e.currentTarget as HTMLImageElement).style.display =
                               "none";
                           }}
