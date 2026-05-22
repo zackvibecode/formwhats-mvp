@@ -27,11 +27,14 @@ export async function uploadFieldImage(
     throw new Error("Only JPG, PNG, and WebP images are allowed.");
   }
 
-  // 2. File size validation: 3 MB max
-  const MAX_BYTES = 3 * 1024 * 1024;
+  // 2. File size validation: 10 MB max. Big enough for high-resolution
+  //    phone photos and screenshots without bloating storage. Supabase
+  //    free tier allows up to 50 MB per object so we're well within limits.
+  const MAX_BYTES = 10 * 1024 * 1024;
   if (file.size > MAX_BYTES) {
-    throw new Error("Image must be less than 3MB.");
+    throw new Error("Image must be less than 10MB.");
   }
+
 
   // 3. Safe filename: lowercase, hyphenate spaces, drop unsafe chars
   const safeName = file.name
