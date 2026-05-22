@@ -8,8 +8,10 @@ import FieldLibraryPanel, {
   type FieldTypeOption,
 } from "@/components/builder/field-library-panel";
 import FieldSettingsPanel from "@/components/builder/field-settings-panel";
+import FormLivePreview from "@/components/builder/form-live-preview";
 import SortableFieldList from "@/components/builder/sortable-field-list";
 import { supabase } from "@/lib/supabase";
+
 
 // --- Types -----------------------------------------------------------------
 
@@ -915,6 +917,14 @@ ${fieldsBlock}`;
           </div>
         </section>
 
+        {/* Live form preview -- mirrors the public customer view so the
+            owner can iterate without saving + opening a separate tab. */}
+        <FormLivePreview
+          title={formTitle}
+          description={formDescription}
+          fields={fields}
+        />
+
         {/* WhatsApp Message Preview card */}
         <section className={cardClass}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -922,6 +932,7 @@ ${fieldsBlock}`;
               <h2 className="text-lg font-semibold text-black">
                 WhatsApp Message Preview
               </h2>
+
               <p className="mt-1 text-sm text-gray-500">
                 This is how the message will look when a customer submits the
                 form.

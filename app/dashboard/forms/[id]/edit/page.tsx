@@ -9,8 +9,10 @@ import FieldLibraryPanel, {
   type FieldTypeOption,
 } from "@/components/builder/field-library-panel";
 import FieldSettingsPanel from "@/components/builder/field-settings-panel";
+import FormLivePreview from "@/components/builder/form-live-preview";
 import SortableFieldList from "@/components/builder/sortable-field-list";
 import PageContainer from "@/components/page-container";
+
 import { supabase } from "@/lib/supabase";
 
 // --- Types -----------------------------------------------------------------
@@ -940,6 +942,14 @@ export default function EditFormPage({ params }: EditFormPageProps) {
           </div>
         </section>
 
+        {/* Live form preview -- mirrors the public customer view so the
+            owner can iterate without saving + opening a separate tab. */}
+        <FormLivePreview
+          title={formTitle}
+          description={formDescription}
+          fields={fields}
+        />
+
         {/* Banners */}
         {saveError && (
           <div
@@ -949,6 +959,7 @@ export default function EditFormPage({ params }: EditFormPageProps) {
             {saveError}
           </div>
         )}
+
         {saveSuccess && (
           <div
             role="status"
