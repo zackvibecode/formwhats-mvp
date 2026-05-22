@@ -1,6 +1,10 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { SparkleIcon } from "@/components/landing/icons";
+import { supabase } from "@/lib/supabase";
+import { uploadFieldImage } from "@/lib/upload-field-image";
+
 
 // --- Types -----------------------------------------------------------------
 
@@ -316,8 +320,17 @@ function DropdownOptionsEditor({
   );
 }
 
-// --- Image URL editor ----------------------------------------------------
+// --- Image editor (upload + manual URL) ----------------------------------
 
+/**
+ * Image editor for a question field.
+ *
+ * Supports two paths:
+ *   1. Upload Image -- uploads to Supabase Storage bucket `form-images`
+ *      and writes the resulting public URL back to the field.
+ *   2. (Advanced) Paste image URL -- kept for power users who want to
+ *      reference an externally hosted image without uploading.
+ */
 function ImageUrlEditor({
   imageUrl,
   onChange,
@@ -325,19 +338,103 @@ function ImageUrlEditor({
   imageUrl: string;
   onChange: (next: string) => void;
 }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
   const hasImage = imageUrl.trim() !== "";
+
+  async function handleFileChange(
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = e.target.files?.[0];
+    // Reset the input so the same file can be re-selected after a failed
+    // upload (browsers ignore a "change" event for an identical value).
+    e.target.value = "";
+    if (!file) return;
+
+    setUploadError("");
+    setIsUploading(true);
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        setUploadError("Please login again to upload images.");
+        setIsUploading(false);
+        return;
+      }
+
+      const publicUrl = await uploadFieldImage(file, user.id);
+      onChange(publicUrl);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to upload image.";
+      setUploadError(message);
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  function handleUploadClick() {
+    if (isUploading) return;
+    fileInputRef.current?.click();
+  }
+
+  function handleRemove() {
+    setUploadError("");
+    onChange("");
+  }
+
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
         Question Image
       </p>
+      <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+        Upload an image for this field. It will appear above the question on
+        the public form.
+      </p>
+
+      {/* Hidden native file input -- driven by the styled button below. */}
       <input
-        type="url"
-        value={imageUrl}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Paste image URL"
-        className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-black placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={handleFileChange}
+        className="hidden"
       />
+
+      {/* Upload button */}
+      <button
+        type="button"
+        onClick={handleUploadClick}
+        disabled={isUploading}
+        className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand/40 bg-white px-3 py-2 text-xs font-medium text-brand-dark transition-colors hover:border-brand hover:bg-brand/5 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isUploading ? (
+          "Uploading..."
+        ) : (
+          <>
+            <span aria-hidden>📷</span>
+            {hasImage ? "Replace Image" : "Upload Image"}
+          </>
+        )}
+      </button>
+
+      {uploadError && (
+        <p
+          role="alert"
+          className="mt-2 rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-[11px] text-red-600"
+        >
+          {uploadError}
+        </p>
+      )}
+
+      {/* Preview */}
       {hasImage && (
         <div className="mt-2 flex flex-col gap-2">
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -353,16 +450,31 @@ function ImageUrlEditor({
           </div>
           <button
             type="button"
-            onClick={() => onChange("")}
+            onClick={handleRemove}
             className="self-end rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-[10px] font-medium text-red-600 transition-colors hover:bg-red-100"
           >
             Remove Image
           </button>
         </div>
       )}
+
+      {/* Advanced: manual image URL paste -- kept for power users / migrations */}
+      <details className="mt-3 group">
+        <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-gray-400 transition-colors hover:text-gray-600">
+          Or paste image URL
+        </summary>
+        <input
+          type="url"
+          value={imageUrl}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://example.com/image.jpg"
+          className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-black placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+        />
+      </details>
     </div>
   );
 }
+
 
 // --- Read-only preview rendered in the panel -----------------------------
 
