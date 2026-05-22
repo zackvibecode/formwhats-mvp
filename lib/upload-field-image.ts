@@ -61,11 +61,40 @@ export async function uploadFieldImage(
     });
 
   if (uploadError) {
-    // 6. Surface a friendly error but keep technical detail in the console
-    //    for debugging (RLS denied, bucket missing, quota, etc.)
+    // 6. Surface the REAL Supabase error so the user can act on it.
+    //    Common cases:
+    //      - "new row violates row-level security policy"
+    //          -> Storage RLS policies not applied. Run
+    //             supabase/storage-policies.sql in the SQL editor.
+    //      - "Bucket not found"
+    //          -> Bucket `form-images` not created (or wrong name).
+    //      - "The resource already exists"
+    //          -> Duplicate filename, retry will use a fresh timestamp.
+    //      - "Payload too large"
+    //          -> Hits the bucket-level file-size limit, raise it in
+    //             Supabase Dashboard > Storage > Bucket settings.
     console.error("[uploadFieldImage] upload failed", uploadError);
-    throw new Error("Failed to upload image.");
+    const raw = (uploadError as { message?: string })?.message ?? "";
+    if (/row-level security|rls/i.test(raw)) {
+      throw new Error(
+        "Upload blocked by Storage RLS. Run supabase/storage-policies.sql in the SQL editor.",
+      );
+    }
+    if (/bucket.*not found/i.test(raw)) {
+      throw new Error(
+        "Bucket 'form-images' not found. Create it in Supabase > Storage.",
+      );
+    }
+    if (/payload too large|exceeded.*size/i.test(raw)) {
+      throw new Error(
+        "Image rejected by storage. Lower the file size or raise the bucket's file size limit.",
+      );
+    }
+    throw new Error(
+      raw ? `Upload failed: ${raw}` : "Failed to upload image.",
+    );
   }
+
 
   // 7. Resolve public URL
   const { data } = supabase.storage.from("form-images").getPublicUrl(path);
