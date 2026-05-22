@@ -1,108 +1,58 @@
-import { supabase } from "@/lib/supabase";
-
 /**
- * Upload an image file from the builder Field Settings panel to Supabase
- * Storage and return its public URL.
+ * Convert a user-picked image File into a base64 data URL that can be
+ * stored directly in `form_fields.image_url` (TEXT column) without
+ * needing Supabase Storage / buckets / RLS policies set up.
  *
- * Requirements (must be created manually in the Supabase dashboard):
- *   - A PUBLIC storage bucket named `form-images`.
+ * Trade-off:
+ *   - Pro: zero infrastructure setup. Works the moment the user picks
+ *     an image. Same UX as dropdown / number / other field types --
+ *     click and it just works.
+ *   - Con: each image bloats the form_fields row. We cap at 1 MB to
+ *     keep public-form payload reasonable on mobile 4G.
  *
- * Storage layout:
- *   form-field-images/<userId>/<timestamp>-<safe-filename>
+ * If you outgrow this (lots of images per form, or want CDN delivery),
+ * swap the body back to a Supabase Storage upload -- the calling code
+ * only sees the same return type (a string URL/data-URL).
  *
- * The userId folder lets us scope policies later (e.g. only owner can
- * delete) without rewriting the path.
+ * Function signature stays the same so existing callers don't break.
  *
- * @param file   File chosen via <input type="file" accept="image/*">
- * @param userId Current authenticated user's id (auth.users.id)
- * @returns      Public URL of the uploaded image
+ * @param file   File chosen via <input type="file"> or drag-and-drop
+ * @param _userId Kept for API compat with the previous Storage-based
+ *                implementation; unused in this version.
+ * @returns      A data URL of the form `data:image/png;base64,...`
  */
 export async function uploadFieldImage(
   file: File,
-  userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _userId: string,
 ): Promise<string> {
-  // 1. File type validation
+  // 1. File type validation -- accept the same set as before.
   const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
   if (!allowedTypes.includes(file.type)) {
     throw new Error("Only JPG, PNG, and WebP images are allowed.");
   }
 
-  // 2. File size validation: 10 MB max. Big enough for high-resolution
-  //    phone photos and screenshots without bloating storage. Supabase
-  //    free tier allows up to 50 MB per object so we're well within limits.
-  const MAX_BYTES = 10 * 1024 * 1024;
+  // 2. File size validation. 1 MB keeps the base64-encoded payload
+  //    around ~1.4 MB which is still snappy on mobile and well under
+  //    PostgreSQL row limits.
+  const MAX_BYTES = 1 * 1024 * 1024;
   if (file.size > MAX_BYTES) {
-    throw new Error("Image must be less than 10MB.");
+    throw new Error("Image must be less than 1MB.");
   }
 
-
-  // 3. Safe filename: lowercase, hyphenate spaces, drop unsafe chars
-  const safeName = file.name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9.\-_]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  const finalName = safeName === "" ? "image" : safeName;
-
-  // 4. Storage path. Timestamp prefix avoids collisions when the same file
-  //    name is uploaded multiple times.
-  const path = `form-field-images/${userId}/${Date.now()}-${finalName}`;
-
-  // 5. Upload
-  const { error: uploadError } = await supabase.storage
-    .from("form-images")
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
-
-  if (uploadError) {
-    // 6. Surface the REAL Supabase error so the user can act on it.
-    //    Common cases:
-    //      - "new row violates row-level security policy"
-    //          -> Storage RLS policies not applied. Run
-    //             supabase/storage-policies.sql in the SQL editor.
-    //      - "Bucket not found"
-    //          -> Bucket `form-images` not created (or wrong name).
-    //      - "The resource already exists"
-    //          -> Duplicate filename, retry will use a fresh timestamp.
-    //      - "Payload too large"
-    //          -> Hits the bucket-level file-size limit, raise it in
-    //             Supabase Dashboard > Storage > Bucket settings.
-    console.error("[uploadFieldImage] upload failed", uploadError);
-    const raw = (uploadError as { message?: string })?.message ?? "";
-    if (/row-level security|rls/i.test(raw)) {
-      throw new Error(
-        "Upload blocked by Storage RLS. Run supabase/storage-policies.sql in the SQL editor.",
-      );
-    }
-    if (/bucket.*not found/i.test(raw)) {
-      throw new Error(
-        "Bucket 'form-images' not found. Create it in Supabase > Storage.",
-      );
-    }
-    if (/payload too large|exceeded.*size/i.test(raw)) {
-      throw new Error(
-        "Image rejected by storage. Lower the file size or raise the bucket's file size limit.",
-      );
-    }
-    throw new Error(
-      raw ? `Upload failed: ${raw}` : "Failed to upload image.",
-    );
-  }
-
-
-  // 7. Resolve public URL
-  const { data } = supabase.storage.from("form-images").getPublicUrl(path);
-
-  if (!data?.publicUrl) {
-    throw new Error("Failed to upload image.");
-  }
-
-  // 8. Done
-  return data.publicUrl;
+  // 3. Read the file as a data URL. FileReader is synchronous-ish via
+  //    a callback API so we wrap it in a Promise.
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string" || result === "") {
+        reject(new Error("Failed to read image."));
+        return;
+      }
+      resolve(result);
+    };
+    reader.onerror = () => reject(new Error("Failed to read image."));
+    reader.readAsDataURL(file);
+  });
 }
