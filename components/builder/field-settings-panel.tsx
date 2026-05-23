@@ -464,9 +464,21 @@ function DropdownOptionsEditor({
                   type="button"
                   onClick={() => removeAt(index)}
                   aria-label={`Remove option ${index + 1}`}
-                  className="shrink-0 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-medium text-red-600 transition-colors hover:bg-red-100"
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-600 transition-colors hover:bg-red-100"
                 >
-                  ✕
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-3 w-3"
+                    aria-hidden
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
                 </button>
               </div>
               {empty && (
@@ -589,7 +601,19 @@ function ImageUrlEditor({
           "Uploading..."
         ) : (
           <>
-            <span aria-hidden>📷</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.75}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+              aria-hidden
+            >
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
             {hasImage ? "Replace Image" : "Upload Image"}
           </>
         )}

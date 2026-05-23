@@ -33,3 +33,17 @@ html {
   box-shadow: 0 20px 40px -16px rgba(22, 163, 74, 0.35),
               0 8px 16px -8px rgba(22, 163, 74, 0.25);
 }
+
+/* Respect users who prefer reduced motion: kill or shorten animation,
+   transition, and parallax. We keep transitions on so focus rings still
+   feel responsive, but cap them aggressively. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

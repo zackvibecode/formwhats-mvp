@@ -245,9 +245,9 @@ export default function FieldLibraryPanel({
           >
             <span
               aria-hidden
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-base transition-colors group-hover:bg-brand/20"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand-dark transition-colors group-hover:bg-brand/20"
             >
-              📷
+              <CameraIcon />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-black">
@@ -461,6 +461,15 @@ function DropdownIcon() {
   return svgWrap(
     <>
       <path d="M6 9l6 6 6-6" />
+    </>,
+  );
+}
+
+function CameraIcon() {
+  return svgWrap(
+    <>
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+      <circle cx="12" cy="13" r="4" />
     </>,
   );
 }
