@@ -610,37 +610,21 @@ function toDateInputValue(d: Date): string {
 /**
  * Compute concrete from/to YYYY-MM-DD strings for a non-custom preset.
  *
- * Week starts on Monday to match common business expectations. Month and
- * year ranges cover the full current calendar month/year.
+ * Uses rolling windows (last N days) so a user always sees recent
+ * activity regardless of where the calendar boundary falls.
+ *   today  -> today only
+ *   week   -> last 7 days (today minus 6 .. today)
+ *   month  -> last 30 days
+ *   year   -> last 365 days
  */
 function computeRange(
   preset: Exclude<DateRangePreset, "all" | "custom">,
 ): { from: string; to: string } {
   const now = new Date();
+  const to = toDateInputValue(now);
 
-  if (preset === "today") {
-    const today = toDateInputValue(now);
-    return { from: today, to: today };
-  }
-
-  if (preset === "week") {
-    // Monday-start week. JS getDay(): Sun=0..Sat=6 -> shift so Mon=0..Sun=6.
-    const dayIndex = (now.getDay() + 6) % 7;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - dayIndex);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    return { from: toDateInputValue(monday), to: toDateInputValue(sunday) };
-  }
-
-  if (preset === "month") {
-    const first = new Date(now.getFullYear(), now.getMonth(), 1);
-    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    return { from: toDateInputValue(first), to: toDateInputValue(last) };
-  }
-
-  // year
-  const first = new Date(now.getFullYear(), 0, 1);
-  const last = new Date(now.getFullYear(), 11, 31);
-  return { from: toDateInputValue(first), to: toDateInputValue(last) };
+  const daysBack = preset === "today" ? 0 : preset === "week" ? 6 : preset === "month" ? 29 : 364;
+  const fromDate = new Date(now);
+  fromDate.setDate(now.getDate() - daysBack);
+  return { from: toDateInputValue(fromDate), to };
 }

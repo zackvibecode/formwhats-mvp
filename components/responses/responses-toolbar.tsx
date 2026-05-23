@@ -161,9 +161,9 @@ export default function ResponsesToolbar({
         >
           <option value="all">All time</option>
           <option value="today">Today</option>
-          <option value="week">This week</option>
-          <option value="month">This month</option>
-          <option value="year">This year</option>
+          <option value="week">Last 7 days</option>
+          <option value="month">Last 30 days</option>
+          <option value="year">Last 365 days</option>
           <option value="custom">Custom</option>
         </select>
 
