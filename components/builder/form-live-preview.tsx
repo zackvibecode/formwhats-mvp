@@ -36,8 +36,11 @@ type FormLivePreviewProps = {
   fields: PreviewField[];
 };
 
+// Inputs render as if customer-ready but pointer-events disabled at the
+// row level so the owner can't accidentally type. We avoid the muted
+// `bg-gray-50 text-gray-500` look — it makes the preview feel broken.
 const inputClass =
-  "mt-2 block w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-500 placeholder:text-gray-400";
+  "mt-2 block w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-black placeholder:text-gray-400 pointer-events-none select-none";
 const labelClass = "text-sm font-medium text-black";
 
 export default function FormLivePreview({
@@ -73,20 +76,45 @@ export default function FormLivePreview({
 
         <div className="mt-6 flex flex-col gap-5">
           {fields.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-xs text-gray-500">
-              No fields yet. Add a field from the left panel to see it here.
-            </p>
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50/60 p-8 text-center">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-brand/10 text-brand-dark">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.75}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                  aria-hidden
+                >
+                  <rect x="4" y="3" width="16" height="18" rx="2" />
+                  <path d="M8 8h8" />
+                  <path d="M8 12h8" />
+                  <path d="M8 16h5" />
+                </svg>
+              </span>
+              <p className="text-sm font-medium text-black">
+                No fields yet
+              </p>
+              <p className="text-[11px] leading-relaxed text-gray-500">
+                Drag a question from the left panel, or click any field type
+                to add it.
+              </p>
+            </div>
           ) : (
             fields.map((field) => <PreviewFieldRow key={field.id} field={field} />)
           )}
         </div>
 
-        {/* Disabled CTA -- preview only, no real submission */}
+        {/* Disabled CTA — preview only. We render with full brand colour
+            so it looks faithful to what customers will see. The whole
+            button is non-interactive (pointer-events-none + disabled). */}
         <div className="mt-7">
           <button
             type="button"
             disabled
-            className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl bg-brand/60 px-5 py-3 text-sm font-medium text-white opacity-80"
+            className="pointer-events-none inline-flex w-full select-none items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white shadow-sm"
             title="Preview only"
           >
             Continue to WhatsApp

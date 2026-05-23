@@ -17,6 +17,10 @@ type BuilderTopbarProps = {
   previewSlug?: string;
   /** Optional form id, used to link the Responses tab to the right form. */
   formId?: string;
+  /** Optional handler for the "Share" tab. When provided, the Share tab
+   *  opens an in-app share modal instead of opening the public form in a
+   *  new tab. Falls back to opening the form preview if not provided. */
+  onShareClick?: () => void;
 };
 
 /**
@@ -36,6 +40,7 @@ export default function BuilderTopbar({
   onSave,
   previewSlug,
   formId,
+  onShareClick,
 }: BuilderTopbarProps) {
   function handlePreview() {
     if (previewSlug) {
@@ -93,7 +98,7 @@ export default function BuilderTopbar({
           {previewSlug ? (
             <button
               type="button"
-              onClick={handlePreview}
+              onClick={onShareClick ?? handlePreview}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-gray-500 transition-colors hover:text-black"
             >
               <ShareIcon />

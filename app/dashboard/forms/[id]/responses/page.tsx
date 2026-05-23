@@ -339,10 +339,10 @@ export default function ResponsesPage({ params }: ResponsesPageProps) {
   const hasFilteredResults = filteredResponses.length > 0;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="bg-gray-50">
       <PageHeader form={form} />
 
-      <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-5 sm:px-6">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
         {banner && (
           <div
             role="status"
@@ -401,112 +401,69 @@ export default function ResponsesPage({ params }: ResponsesPageProps) {
 
 function PageHeader({ form }: { form: FormDetail }) {
   return (
-    <header className="bg-white">
-      {/* Row 1: back + title + secondary nav placeholders */}
-      <div className="border-b border-gray-100">
-        <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link
-              href="/dashboard"
-              aria-label="Back to Dashboard"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-700 transition hover:bg-gray-100"
+    <header className="border-b border-gray-200 bg-white">
+      {/* Single row: back + title + tabs + Open. We removed the
+          EN/Help/Account row — those affordances now live in the
+          dashboard topbar/sidebar so showing them again here doubled
+          up navigation. */}
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+        {/* Left: back + title */}
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href={`/dashboard/forms/${form.id}/edit`}
+            aria-label="Back to builder"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-gray-300 hover:text-black"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+              aria-hidden
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.75}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5"
-                aria-hidden
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </Link>
-            <h1 className="truncate text-base font-semibold uppercase tracking-wide text-black sm:text-lg">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </Link>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+              Form
+            </p>
+            <h1 className="truncate text-sm font-semibold text-black">
               {form.title}
             </h1>
           </div>
-
-          <div className="hidden items-center gap-5 text-sm text-gray-500 md:flex">
-            <span className="inline-flex items-center gap-1.5">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.75}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-                aria-hidden
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M2 12h20" />
-                <path d="M12 2a15.3 15.3 0 0 1 0 20" />
-                <path d="M12 2a15.3 15.3 0 0 0 0 20" />
-              </svg>
-              <span>EN</span>
-            </span>
-            <span>Help</span>
-            <span>Account</span>
-          </div>
         </div>
-      </div>
 
-      {/* Row 2: tabs (left) + Open / Settings (right) */}
-      <div className="border-b border-gray-200">
-        <div className="mx-auto flex w-full max-w-[1400px] flex-wrap items-end justify-between gap-3 px-4 sm:px-6">
-          <Tabs formId={form.id} slug={form.slug} />
+        {/* Centre: tabs */}
+        <Tabs formId={form.id} slug={form.slug} />
 
-          <div className="flex items-center gap-2 py-2">
-            <Link
-              href={`/form/${form.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-black transition hover:bg-gray-50"
+        {/* Right: Open public form */}
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href={`/form/${form.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.75}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-3.5 w-3.5"
+              aria-hidden
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.75}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-                aria-hidden
-              >
-                <path d="M10 14L21 3" />
-                <path d="M21 9V3h-6" />
-                <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
-              </svg>
-              Open
-            </Link>
-            <button
-              type="button"
-              onClick={() => window.alert("Settings will be added later.")}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.75}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-                aria-hidden
-              >
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.36.16.66.43.86.79a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-              Settings
-            </button>
-          </div>
+              <path d="M10 14L21 3" />
+              <path d="M21 9V3h-6" />
+              <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+            </svg>
+            Open
+          </Link>
         </div>
       </div>
     </header>
@@ -589,8 +546,27 @@ function Tabs({ formId, slug }: { formId: string; slug: string }) {
 
 function EmptyCard({ text }: { text: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center text-sm text-gray-500">
-      {text}
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-white p-14 text-center">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/10 text-brand-dark">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-5 w-5"
+          aria-hidden
+        >
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M3 10h18" />
+        </svg>
+      </div>
+      <p className="text-sm font-semibold text-black">{text}</p>
+      <p className="max-w-xs text-[12px] leading-relaxed text-gray-500">
+        Submissions to your public form will show up here. Share your form
+        link to start collecting responses.
+      </p>
     </div>
   );
 }

@@ -26,6 +26,7 @@ import FieldLibraryPanel, {
 } from "@/components/builder/field-library-panel";
 import FieldSettingsPanel from "@/components/builder/field-settings-panel";
 import FormLivePreview from "@/components/builder/form-live-preview";
+import SharePanel from "@/components/builder/share-panel";
 import SortableFieldList from "@/components/builder/sortable-field-list";
 
 import { supabase } from "@/lib/supabase";
@@ -137,6 +138,9 @@ export default function EditFormPage({ params }: EditFormPageProps) {
 
   // Currently selected field id -- powers the right Field Settings panel.
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+
+  // Share modal open state. Triggered from the topbar "Share" tab.
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   // Snapshot of field row UUIDs that existed in the DB at load time.
   // We use this on save to figure out which rows to UPDATE (already in DB),
@@ -657,6 +661,7 @@ export default function EditFormPage({ params }: EditFormPageProps) {
           onSave={() => handleSave()}
           previewSlug={loadedForm.slug}
           formId={loadedForm.id}
+          onShareClick={() => setIsShareOpen(true)}
         />
 
       }
@@ -1135,6 +1140,15 @@ export default function EditFormPage({ params }: EditFormPageProps) {
         </div>
       ) : null}
     </DragOverlay>
+
+    {/* Share modal — public URL + QR + status, surfaced from topbar Share tab */}
+    <SharePanel
+      isOpen={isShareOpen}
+      onClose={() => setIsShareOpen(false)}
+      slug={loadedForm.slug}
+      isActive={isActive}
+      formTitle={formTitle}
+    />
     </DndContext>
   );
 }
