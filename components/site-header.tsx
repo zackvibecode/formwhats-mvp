@@ -140,6 +140,13 @@ export default function SiteHeader() {
     return null;
   }
 
+  // Hide on `/dashboard/*` — those routes have their own sidebar + topbar
+  // shell (see components/dashboard/dashboard-shell.tsx). Showing both
+  // would double up navigation and waste vertical space.
+  if (pathname?.startsWith("/dashboard")) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-30 w-full border-b border-gray-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70">
 

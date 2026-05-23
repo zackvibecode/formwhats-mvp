@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import ButtonLink from "@/components/button-link";
-import PageContainer from "@/components/page-container";
+import StatsCards, {
+  type DashboardStats,
+} from "@/components/dashboard/stats-cards";
 import { supabase } from "@/lib/supabase";
 
 // --- Types -----------------------------------------------------------------
@@ -17,6 +19,8 @@ type DashboardForm = {
   whatsapp_number: string;
   is_active: boolean;
   created_at: string;
+  response_count?: number;
+  responses_last_7d?: number;
 };
 
 // --- Helpers ---------------------------------------------------------------
@@ -30,6 +34,10 @@ function formatDate(iso: string): string {
 
 export default function DashboardPage() {
   const [forms, setForms] = useState<DashboardForm[]>([]);
+  const [responseStats, setResponseStats] = useState<{
+    total: number;
+    last7d: number;
+  }>({ total: 0, last7d: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [origin, setOrigin] = useState("");
@@ -92,6 +100,54 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Pull response counts for the stats cards. Lightweight: only IDs + ts,
+  // joined via RLS on `responses` (already form-owner scoped through the
+  // form_id FK + the user's `forms` rows).
+  useEffect(() => {
+    if (forms.length === 0) {
+      setResponseStats({ total: 0, last7d: 0 });
+      return;
+    }
+    let cancelled = false;
+    const sevenDaysAgo = new Date(
+      Date.now() - 7 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const formIds = forms.map((f) => f.id);
+
+    supabase
+      .from("responses")
+      .select("id, submitted_at")
+      .in("form_id", formIds)
+      .then(({ data, error: respErr }) => {
+        if (cancelled) return;
+        if (respErr) {
+          console.error("Failed to load response stats", respErr);
+          setResponseStats({ total: 0, last7d: 0 });
+          return;
+        }
+        const rows = data ?? [];
+        const last7d = rows.filter(
+          (r) => r.submitted_at && r.submitted_at >= sevenDaysAgo,
+        ).length;
+        setResponseStats({ total: rows.length, last7d });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [forms]);
+
+  // Stats derived from forms + response counts.
+  const stats: DashboardStats = useMemo(
+    () => ({
+      totalForms: forms.length,
+      activeForms: forms.filter((f) => f.is_active).length,
+      totalResponses: responseStats.total,
+      responsesLast7Days: responseStats.last7d,
+    }),
+    [forms, responseStats],
+  );
+
   async function handleCopyLink(formId: string, url: string) {
     try {
       await navigator.clipboard.writeText(url);
@@ -153,14 +209,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <PageContainer>
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">
+          <h1 className="text-2xl font-bold tracking-tight text-black sm:text-3xl">
             My Forms
           </h1>
-          <p className="mt-2 max-w-xl text-sm text-gray-600 sm:text-base">
+          <p className="mt-1.5 max-w-xl text-sm text-gray-600">
             Manage your WhatsApp forms, links, QR codes, and responses.
           </p>
         </div>
@@ -168,11 +224,16 @@ export default function DashboardPage() {
         <ButtonLink
           href="/dashboard/forms/new"
           variant="primary"
-          className="transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          className="!py-2.5 !px-4 !text-sm"
         >
           + Create New Form
         </ButtonLink>
       </header>
+
+      {/* Stats overview */}
+      <div className="mt-6">
+        <StatsCards stats={stats} isLoading={isLoading} />
+      </div>
 
       {/* Delete feedback banners */}
       {deleteError && (
@@ -224,7 +285,7 @@ export default function DashboardPage() {
           </ul>
         )}
       </div>
-    </PageContainer>
+    </div>
   );
 }
 
