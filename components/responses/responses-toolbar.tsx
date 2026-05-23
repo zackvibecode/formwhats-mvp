@@ -12,6 +12,14 @@
  * stay in sync.
  */
 
+export type DateRangePreset =
+  | "all"
+  | "today"
+  | "week"
+  | "month"
+  | "year"
+  | "custom";
+
 type ResponsesToolbarProps = {
   // Search
   searchQuery: string;
@@ -22,6 +30,10 @@ type ResponsesToolbarProps = {
   toDate: string;
   onFromDateChange: (value: string) => void;
   onToDateChange: (value: string) => void;
+
+  // Date range preset
+  dateRangePreset: DateRangePreset;
+  onDateRangePresetChange: (value: DateRangePreset) => void;
 
   // Selection-aware actions
   selectedCount: number;
@@ -58,6 +70,8 @@ export default function ResponsesToolbar({
   toDate,
   onFromDateChange,
   onToDateChange,
+  dateRangePreset,
+  onDateRangePresetChange,
   selectedCount,
   onDeleteSelected,
   onExportCsv,
@@ -136,6 +150,22 @@ export default function ResponsesToolbar({
             aria-label="Search responses"
           />
         </div>
+
+        <select
+          value={dateRangePreset}
+          onChange={(event) =>
+            onDateRangePresetChange(event.target.value as DateRangePreset)
+          }
+          className={`${inputBase} pr-8`}
+          aria-label="Date range preset"
+        >
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="week">This week</option>
+          <option value="month">This month</option>
+          <option value="year">This year</option>
+          <option value="custom">Custom</option>
+        </select>
 
         <div className="flex items-center gap-2">
           <input

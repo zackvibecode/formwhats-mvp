@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import ResponsesTable from "@/components/responses/responses-table";
-import ResponsesToolbar from "@/components/responses/responses-toolbar";
+import ResponsesToolbar, {
+  type DateRangePreset,
+} from "@/components/responses/responses-toolbar";
 import {
   downloadCsv,
   downloadXlsx,
@@ -51,7 +53,35 @@ export default function ResponsesPage({ params }: ResponsesPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [dateRangePreset, setDateRangePreset] =
+    useState<DateRangePreset>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Apply a preset by computing concrete from/to dates. "custom" leaves the
+  // date inputs alone; "all" clears them.
+  const handleDateRangePresetChange = useCallback((next: DateRangePreset) => {
+    setDateRangePreset(next);
+    if (next === "custom") return;
+    if (next === "all") {
+      setFromDate("");
+      setToDate("");
+      return;
+    }
+    const range = computeRange(next);
+    setFromDate(range.from);
+    setToDate(range.to);
+  }, []);
+
+  // If the user types a date manually, switch the preset to "custom" so the
+  // dropdown reflects what's actually applied.
+  const handleFromDateChange = useCallback((value: string) => {
+    setFromDate(value);
+    setDateRangePreset("custom");
+  }, []);
+  const handleToDateChange = useCallback((value: string) => {
+    setToDate(value);
+    setDateRangePreset("custom");
+  }, []);
 
   // ----- Data loading ---------------------------------------------------
 
@@ -331,8 +361,10 @@ export default function ResponsesPage({ params }: ResponsesPageProps) {
           onSearchChange={setSearchQuery}
           fromDate={fromDate}
           toDate={toDate}
-          onFromDateChange={setFromDate}
-          onToDateChange={setToDate}
+          onFromDateChange={handleFromDateChange}
+          onToDateChange={handleToDateChange}
+          dateRangePreset={dateRangePreset}
+          onDateRangePresetChange={handleDateRangePresetChange}
           selectedCount={selectedIds.size}
           onDeleteSelected={handleDeleteSelected}
           onExportCsv={handleExportCsv}
@@ -561,4 +593,54 @@ function EmptyCard({ text }: { text: string }) {
       {text}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Date helpers
+// ---------------------------------------------------------------------------
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function toDateInputValue(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * Compute concrete from/to YYYY-MM-DD strings for a non-custom preset.
+ *
+ * Week starts on Monday to match common business expectations. Month and
+ * year ranges cover the full current calendar month/year.
+ */
+function computeRange(
+  preset: Exclude<DateRangePreset, "all" | "custom">,
+): { from: string; to: string } {
+  const now = new Date();
+
+  if (preset === "today") {
+    const today = toDateInputValue(now);
+    return { from: today, to: today };
+  }
+
+  if (preset === "week") {
+    // Monday-start week. JS getDay(): Sun=0..Sat=6 -> shift so Mon=0..Sun=6.
+    const dayIndex = (now.getDay() + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - dayIndex);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { from: toDateInputValue(monday), to: toDateInputValue(sunday) };
+  }
+
+  if (preset === "month") {
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { from: toDateInputValue(first), to: toDateInputValue(last) };
+  }
+
+  // year
+  const first = new Date(now.getFullYear(), 0, 1);
+  const last = new Date(now.getFullYear(), 11, 31);
+  return { from: toDateInputValue(first), to: toDateInputValue(last) };
 }
