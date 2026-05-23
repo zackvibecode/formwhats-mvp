@@ -33,6 +33,15 @@ type SortableFieldListProps<T extends SortableItemBase> = {
    * and attributes from dnd-kit.
    */
   renderField: (field: T, dragHandle: ReactNode) => ReactNode;
+  /**
+   * When true, this component renders only the inner SortableContext +
+   * rows and assumes the caller already mounts a parent <DndContext>.
+   * Use this when you want a single DndContext to span both this list
+   * and other draggables (e.g. a field library that drags new items
+   * into the canvas). Defaults to false (self-contained behavior, same
+   * as the original component).
+   */
+  disableContext?: boolean;
 };
 
 // --- Drag handle ----------------------------------------------------------
@@ -133,6 +142,7 @@ export default function SortableFieldList<T extends SortableItemBase>({
   fields,
   onReorder,
   renderField,
+  disableContext = false,
 }: SortableFieldListProps<T>) {
   // 8px activation distance prevents drags from triggering on
   // accidental click slips, and lets normal click events through.
@@ -152,26 +162,34 @@ export default function SortableFieldList<T extends SortableItemBase>({
     onReorder(arrayMove(fields, oldIndex, newIndex));
   }
 
+  const list = (
+    <SortableContext
+      items={fields.map((f) => f.id)}
+      strategy={verticalListSortingStrategy}
+    >
+      <ul className="flex flex-col gap-3">
+        {fields.map((field) => (
+          <SortableRow
+            key={field.id}
+            field={field}
+            renderField={renderField}
+          />
+        ))}
+      </ul>
+    </SortableContext>
+  );
+
+  if (disableContext) {
+    return list;
+  }
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext
-        items={fields.map((f) => f.id)}
-        strategy={verticalListSortingStrategy}
-      >
-        <ul className="flex flex-col gap-3">
-          {fields.map((field) => (
-            <SortableRow
-              key={field.id}
-              field={field}
-              renderField={renderField}
-            />
-          ))}
-        </ul>
-      </SortableContext>
+      {list}
     </DndContext>
   );
 }

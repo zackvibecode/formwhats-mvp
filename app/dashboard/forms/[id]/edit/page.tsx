@@ -1,11 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  closestCenter,
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
 import ButtonLink from "@/components/button-link";
 import BuilderShell from "@/components/builder/builder-shell";
 import BuilderTopbar from "@/components/builder/builder-topbar";
+import CanvasDroppable, {
+  CANVAS_DROPPABLE_ID,
+} from "@/components/builder/canvas-droppable";
 import FieldLibraryPanel, {
+  LIBRARY_DND_PREFIX,
   type FieldTypeOption,
 } from "@/components/builder/field-library-panel";
 import FieldSettingsPanel from "@/components/builder/field-settings-panel";
@@ -129,6 +145,94 @@ export default function EditFormPage({ params }: EditFormPageProps) {
   // means older responses (whose data_json is keyed by field UUID) keep
   // mapping to the right field labels.
   const initialFieldIdsRef = useRef<string[]>([]);
+
+  // --- Drag-and-drop state -------------------------------------------------
+  // Two flows share one DndContext:
+  //   1. Library → Canvas: id starts with `library:` → create new field
+  //   2. Canvas reorder: id is an existing field id → arrayMove
+  // `activeLibraryType` tracks the current drag so we can render an overlay
+  // preview AND highlight the canvas drop zone.
+  const [activeLibraryType, setActiveLibraryType] =
+    useState<FieldTypeOption | null>(null);
+
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  function handleDragStart(event: DragStartEvent) {
+    const id = String(event.active.id);
+    if (id.startsWith(LIBRARY_DND_PREFIX)) {
+      setActiveLibraryType(id.slice(LIBRARY_DND_PREFIX.length) as FieldTypeOption);
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    const activeId = String(active.id);
+
+    // Library drag → create new field if dropped over the canvas (or any
+    // sortable item, which is also inside the canvas).
+    if (activeId.startsWith(LIBRARY_DND_PREFIX)) {
+      setActiveLibraryType(null);
+      if (!over) return;
+      const fieldType = activeId.slice(
+        LIBRARY_DND_PREFIX.length,
+      ) as FieldTypeOption;
+
+      // If dropped on a specific field card, insert just BEFORE that card so
+      // the user has full control over placement. Otherwise append to the end.
+      const overId = String(over.id);
+      if (overId === CANVAS_DROPPABLE_ID) {
+        handleAddFieldFromLibrary(fieldType);
+        return;
+      }
+      const overIndex = fields.findIndex((f) => f.id === overId);
+      if (overIndex < 0) {
+        handleAddFieldFromLibrary(fieldType);
+        return;
+      }
+      const newField = makeFieldFromLibraryType(fieldType);
+      setFields((prev) => {
+        const next = prev.slice();
+        next.splice(overIndex, 0, newField);
+        return next;
+      });
+      setSelectedFieldId(newField.id);
+      flashAddedToast(DEFAULT_FIELD_LABELS[fieldType]);
+      return;
+    }
+
+    // Reorder drag (active id is an existing field id).
+    setActiveLibraryType(null);
+    if (!over || activeId === String(over.id)) return;
+    const oldIndex = fields.findIndex((f) => f.id === activeId);
+    const newIndex = fields.findIndex((f) => f.id === String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    setFields(arrayMove(fields, oldIndex, newIndex));
+  }
+
+  // Helper: produce a brand-new FormField for a given library type.
+  function makeFieldFromLibraryType(type: FieldTypeOption): FormField {
+    return {
+      id: generateFieldId(),
+      label: DEFAULT_FIELD_LABELS[type],
+      type: type as FieldType,
+      required: false,
+      options: type === "dropdown" ? ["Option 1", "Option 2"] : [],
+      image_url: "",
+    };
+  }
+
+  // Helper: show the "X field added" toast for `ms` and then auto-clear.
+  function flashAddedToast(label: string) {
+    setLastAddedLabel(label);
+    window.setTimeout(() => {
+      setLastAddedLabel((current) => (current === label ? "" : current));
+    }, 2500);
+  }
 
 
   // Clear success banner the moment user changes anything.
@@ -536,6 +640,13 @@ export default function EditFormPage({ params }: EditFormPageProps) {
   const numberMissing = whatsappNumber.trim() === "";
 
   return (
+    <DndContext
+      sensors={dndSensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveLibraryType(null)}
+    >
     <BuilderShell
       topbar={
         <BuilderTopbar
@@ -731,16 +842,29 @@ export default function EditFormPage({ params }: EditFormPageProps) {
             </div>
           </div>
 
-          {/* Field list */}
+          {/* Field list — wrapped in a canvas droppable so dragging a card
+              from the Field Library panel can land here even when the
+              canvas is empty. */}
           <div className="mt-6">
+            <CanvasDroppable isLibraryDragging={activeLibraryType !== null}>
             {fields.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500">
-                This form has no fields. Add one above to keep it usable.
+              <div
+                className={[
+                  "rounded-xl border border-dashed p-10 text-center text-sm transition-colors",
+                  activeLibraryType !== null
+                    ? "border-brand/60 bg-brand/5 text-brand-dark"
+                    : "border-gray-300 text-gray-500",
+                ].join(" ")}
+              >
+                {activeLibraryType !== null
+                  ? "Drop here to add this field."
+                  : "This form has no fields. Drag a question type from the left, or add one above."}
               </div>
             ) : (
               <SortableFieldList
                 fields={fields}
                 onReorder={setFields}
+                disableContext
                 renderField={(field, dragHandle) => {
                   const index = fields.findIndex((f) => f.id === field.id);
                   const isEditing = editingFieldId === field.id;
@@ -938,6 +1062,7 @@ export default function EditFormPage({ params }: EditFormPageProps) {
 
               />
             )}
+            </CanvasDroppable>
           </div>
         </section>
 
@@ -992,5 +1117,17 @@ export default function EditFormPage({ params }: EditFormPageProps) {
         </div>
       }
     />
+
+    {/* Floating preview that follows the cursor during a library drag.
+        Tiny tag with the field-type label is enough — keeps animation
+        subtle per design direction. */}
+    <DragOverlay dropAnimation={null}>
+      {activeLibraryType ? (
+        <div className="pointer-events-none rounded-xl border border-brand/40 bg-white px-3 py-2 text-sm font-semibold text-brand-dark shadow-lg ring-2 ring-brand/30">
+          + {DEFAULT_FIELD_LABELS[activeLibraryType]}
+        </div>
+      ) : null}
+    </DragOverlay>
+    </DndContext>
   );
 }

@@ -1,8 +1,17 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/lib/supabase";
 import { uploadFieldImage } from "@/lib/upload-field-image";
+
+/**
+ * dnd-kit id prefix for library items. Page-level onDragEnd checks for
+ * this prefix to know the user is adding a brand-new field rather than
+ * reordering an existing one. The string after `:` is the FieldTypeOption.
+ */
+export const LIBRARY_DND_PREFIX = "library:";
 
 export type FieldTypeOption =
   | "short_text"
@@ -274,43 +283,98 @@ export default function FieldLibraryPanel({
         )}
 
         {items.map((item) => (
-          <li key={item.value}>
-            <button
-              type="button"
-              onClick={() => onSelectType?.(item.value)}
-              className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:bg-brand/5 hover:shadow-sm active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-            >
-              <span
-                aria-hidden
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 transition-colors group-hover:bg-brand/10 group-hover:text-brand-dark"
-              >
-                {item.icon}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-black">
-                  {item.label}
-                </span>
-                <span className="block truncate text-[11px] text-gray-500">
-                  {item.desc}
-                </span>
-              </span>
-              <span
-                aria-hidden
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500 transition-colors group-hover:bg-brand group-hover:text-white"
-              >
-                +
-              </span>
-            </button>
-          </li>
+          <DraggableLibraryItem
+            key={item.value}
+            value={item.value}
+            label={item.label}
+            desc={item.desc}
+            icon={item.icon}
+            onClick={() => onSelectType?.(item.value)}
+          />
         ))}
       </ul>
 
       {/* Tip footer */}
       <div className="mt-5 rounded-xl border border-gray-100 bg-gray-50 p-3 text-[11px] leading-relaxed text-gray-500">
-        Click any field type to add it to your form. Drag the grip handle on
-        a field card in the canvas to reorder.
+        Click any field type to add it, or drag a card into the canvas. Drag
+        the grip on a field in the canvas to reorder.
       </div>
     </aside>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Draggable library item
+// ---------------------------------------------------------------------------
+
+type DraggableLibraryItemProps = {
+  value: FieldTypeOption;
+  label: string;
+  desc: string;
+  icon: ReactNode;
+  onClick: () => void;
+};
+
+/**
+ * A field-type card that is BOTH:
+ *   - clickable (one-click add) — keeps the existing UX intact and works on
+ *     touch devices where dnd-kit can still trigger if PointerSensor allows.
+ *   - draggable (Phase 2) — the parent <DndContext> uses the `library:`
+ *     prefix on the id to route the drop into "create new field".
+ */
+function DraggableLibraryItem({
+  value,
+  label,
+  desc,
+  icon,
+  onClick,
+}: DraggableLibraryItemProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: `${LIBRARY_DND_PREFIX}${value}`,
+      data: { kind: "library", fieldType: value },
+    });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    // Make the original card look "lifted" while the overlay is being
+    // dragged to the canvas. We keep it interactive so the user can
+    // still see where they grabbed from.
+    opacity: isDragging ? 0.4 : 1,
+    cursor: isDragging ? "grabbing" : "grab",
+  };
+
+  return (
+    <li ref={setNodeRef} style={style} className="touch-none">
+      <button
+        type="button"
+        onClick={onClick}
+        {...attributes}
+        {...listeners}
+        className="group flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:bg-brand/5 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+      >
+        <span
+          aria-hidden
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 transition-colors group-hover:bg-brand/10 group-hover:text-brand-dark"
+        >
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-black">
+            {label}
+          </span>
+          <span className="block truncate text-[11px] text-gray-500">
+            {desc}
+          </span>
+        </span>
+        <span
+          aria-hidden
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500 transition-colors group-hover:bg-brand group-hover:text-white"
+        >
+          +
+        </span>
+      </button>
+    </li>
   );
 }
 
