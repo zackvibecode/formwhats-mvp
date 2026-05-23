@@ -672,8 +672,15 @@ export default function EditFormPage({ params }: EditFormPageProps) {
           selectedField={
             fields.find((f) => f.id === selectedFieldId) ?? null
           }
+          selectedFieldIndex={
+            selectedFieldId
+              ? fields.findIndex((f) => f.id === selectedFieldId) + 1 ||
+                undefined
+              : undefined
+          }
           onUpdateField={handleUpdateField}
           onClearSelection={() => setSelectedFieldId(null)}
+          onDeleteField={handleDeleteField}
         />
       }
       canvas={

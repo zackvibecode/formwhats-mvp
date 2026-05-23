@@ -39,6 +39,9 @@ const FIELD_TYPE_OPTIONS: { value: SettingsFieldType; label: string }[] = [
 type FieldSettingsPanelProps = {
   /** The field currently selected in the canvas. Null when nothing selected. */
   selectedField: SettingsField | null;
+  /** Optional: 1-based index of the selected field in the canvas. Used to
+   *  show "Field 3" sub-label in the panel header for context. */
+  selectedFieldIndex?: number;
   /**
    * Callback fired whenever any property of the selected field changes.
    * Pages should setFields(prev => prev.map(...)) using the returned object.
@@ -46,6 +49,10 @@ type FieldSettingsPanelProps = {
   onUpdateField?: (updated: SettingsField) => void;
   /** Optional: clear the selection (e.g. when user wants to deselect). */
   onClearSelection?: () => void;
+  /** Optional: delete the selected field from the canvas. Wired up to a
+   *  subtle danger button at the bottom of the panel. The page-level
+   *  handler is responsible for confirmation + removal from state. */
+  onDeleteField?: (id: string) => void;
 };
 
 // --- Empty state ---------------------------------------------------------
@@ -58,17 +65,20 @@ function EmptyState() {
           Field Settings
         </h2>
         <p className="mt-1 text-xs text-gray-500">
-          Select a field from the canvas to edit its settings.
+          Edit the selected question.
         </p>
       </header>
 
-      <div className="mt-5 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
-        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand-dark">
+      <div className="mt-5 rounded-xl border border-dashed border-gray-300 bg-gray-50/60 px-5 py-8 text-center">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/10 text-brand-dark">
           <SparkleIcon className="h-5 w-5" />
         </div>
-        <p className="mt-3 text-sm font-medium text-black">No field selected</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
-          You can edit label, type, and required status here.
+        <p className="mt-4 text-sm font-semibold text-black">
+          No field selected
+        </p>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500">
+          Click a question on the canvas, or drag a new question from the
+          left panel to start editing.
         </p>
       </div>
     </aside>
@@ -79,14 +89,21 @@ function EmptyState() {
 
 export default function FieldSettingsPanel({
   selectedField,
+  selectedFieldIndex,
   onUpdateField,
   onClearSelection,
+  onDeleteField,
 }: FieldSettingsPanelProps) {
   if (!selectedField) {
     return <EmptyState />;
   }
 
   const labelMissing = selectedField.label.trim() === "";
+  const labelLength = selectedField.label.length;
+  const labelMax = 80;
+  const fieldTypeOption = FIELD_TYPE_OPTIONS.find(
+    (opt) => opt.value === selectedField.type,
+  );
 
   // Image-only field: a field whose only purpose is to display a picture
   // on the public form (banner, divider, hero image). Detected by either
@@ -152,145 +169,241 @@ export default function FieldSettingsPanel({
   return (
     <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold tracking-tight text-black">
-            Field Settings
-          </h2>
-          <p
-            className="mt-0.5 truncate text-xs text-gray-500"
-            title={selectedField.label}
-          >
-            {selectedField.label.trim() === ""
-              ? "Untitled field"
-              : selectedField.label}
-          </p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold tracking-tight text-black">
+              Field Settings
+            </h2>
+            {typeof selectedFieldIndex === "number" && (
+              <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+                Field {selectedFieldIndex}
+              </span>
+            )}
+          </div>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-dark">
+              {fieldTypeOption?.label ?? "Field"}
+            </span>
+            <p
+              className="min-w-0 truncate text-xs text-gray-500"
+              title={selectedField.label}
+            >
+              {selectedField.label.trim() === ""
+                ? "Untitled"
+                : selectedField.label}
+            </p>
+          </div>
         </div>
 
         {onClearSelection && (
           <button
             type="button"
             onClick={onClearSelection}
-            className="shrink-0 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-black"
+            aria-label="Close field settings"
+            className="shrink-0 rounded-lg border border-gray-200 bg-white p-1.5 text-gray-500 transition-colors hover:border-gray-300 hover:text-black"
           >
-            Deselect
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-3.5 w-3.5"
+              aria-hidden
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
           </button>
         )}
       </header>
 
-      <div className="mt-5 flex flex-col gap-4">
-        {/* Label */}
-        <div>
-          <label
-            htmlFor="settings-label"
-            className="text-xs font-semibold text-black"
-          >
-            Field label
-          </label>
-          <input
-            id="settings-label"
-            type="text"
-            value={selectedField.label}
-            onChange={(e) => update({ label: e.target.value })}
-            placeholder="e.g. Full Name"
-            className="mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
-          />
-          {labelMissing && (
-            <p className="mt-1 text-[11px] text-amber-600">
-              Field label should not be empty.
-            </p>
-          )}
-        </div>
-
-        {/* Type */}
-        <div>
-          <label
-            htmlFor="settings-type"
-            className="text-xs font-semibold text-black"
-          >
-            Field type
-          </label>
-          <select
-            id="settings-type"
-            value={selectedField.type}
-            onChange={(e) =>
-              update({ type: e.target.value as SettingsFieldType })
-            }
-            className="mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
-          >
-            {FIELD_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Required toggle */}
-        <div>
-          <span className="text-xs font-semibold text-black">Required</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={selectedField.required}
-            onClick={() => update({ required: !selectedField.required })}
-            className={[
-              "mt-1.5 flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
-              selectedField.required
-                ? "border-brand/30 bg-brand/5 text-brand-dark"
-                : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300",
-            ].join(" ")}
-          >
-            <span className="truncate text-left">
-              {selectedField.required
-                ? "Customers must fill this field."
-                : "This field is optional."}
-            </span>
-            {/* Track */}
-            <span
-              aria-hidden
-              className={[
-                "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200",
-                selectedField.required ? "bg-brand" : "bg-gray-300",
-              ].join(" ")}
-            >
-              {/* Thumb */}
+      <div className="mt-5 flex flex-col">
+        {/* Section: Content */}
+        <SectionHeader>Content</SectionHeader>
+        <div className="flex flex-col gap-4">
+          {/* Label */}
+          <div>
+            <div className="flex items-baseline justify-between">
+              <label
+                htmlFor="settings-label"
+                className="text-xs font-semibold text-black"
+              >
+                Field label
+              </label>
               <span
                 className={[
-                  "inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200",
-                  selectedField.required
-                    ? "translate-x-[18px]"
-                    : "translate-x-0.5",
+                  "text-[10px] tabular-nums",
+                  labelLength > labelMax
+                    ? "text-amber-600"
+                    : "text-gray-400",
                 ].join(" ")}
-              />
-            </span>
-          </button>
+              >
+                {labelLength}/{labelMax}
+              </span>
+            </div>
+            <input
+              id="settings-label"
+              type="text"
+              maxLength={labelMax}
+              value={selectedField.label}
+              onChange={(e) => update({ label: e.target.value })}
+              placeholder="e.g. Full Name"
+              className="mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+            />
+            {labelMissing ? (
+              <p className="mt-1 text-[11px] text-amber-600">
+                Field label should not be empty.
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] text-gray-400">
+                The question shown to your customer above the input.
+              </p>
+            )}
+          </div>
+
+          {/* Type */}
+          <div>
+            <label
+              htmlFor="settings-type"
+              className="text-xs font-semibold text-black"
+            >
+              Field type
+            </label>
+            <select
+              id="settings-type"
+              value={selectedField.type}
+              onChange={(e) =>
+                update({ type: e.target.value as SettingsFieldType })
+              }
+              className="mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+            >
+              {FIELD_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-gray-400">
+              Controls the input type shown on the public form.
+            </p>
+          </div>
         </div>
 
-        {/* Dropdown Options (only for dropdown type) */}
+        {/* Section: Behavior */}
+        <SectionHeader>Behavior</SectionHeader>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={selectedField.required}
+          onClick={() => update({ required: !selectedField.required })}
+          className={[
+            "flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
+            selectedField.required
+              ? "border-brand/30 bg-brand/5"
+              : "border-gray-200 bg-white hover:border-gray-300",
+          ].join(" ")}
+        >
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold text-black">
+              Required
+            </span>
+            <span
+              className={[
+                "mt-0.5 block text-[11px]",
+                selectedField.required ? "text-brand-dark" : "text-gray-500",
+              ].join(" ")}
+            >
+              {selectedField.required
+                ? "Customer must answer."
+                : "Optional answer."}
+            </span>
+          </span>
+          {/* Track */}
+          <span
+            aria-hidden
+            className={[
+              "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200",
+              selectedField.required ? "bg-brand" : "bg-gray-300",
+            ].join(" ")}
+          >
+            {/* Thumb */}
+            <span
+              className={[
+                "inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200",
+                selectedField.required
+                  ? "translate-x-[18px]"
+                  : "translate-x-0.5",
+              ].join(" ")}
+            />
+          </span>
+        </button>
+
+        {/* Section: Options (dropdown only) */}
         {selectedField.type === "dropdown" && (
-          <DropdownOptionsEditor
-            options={selectedField.options ?? []}
-            onChange={(next) => update({ options: next })}
-          />
+          <>
+            <SectionHeader>Options</SectionHeader>
+            <DropdownOptionsEditor
+              options={selectedField.options ?? []}
+              onChange={(next) => update({ options: next })}
+            />
+          </>
         )}
 
-        {/* Question Image (all types) */}
+        {/* Section: Image */}
+        <SectionHeader>Image</SectionHeader>
         <ImageUrlEditor
           imageUrl={selectedField.image_url ?? ""}
           onChange={(next) => update({ image_url: next })}
         />
 
-        {/* Mini preview */}
+        {/* Section: Preview */}
+        <SectionHeader>Preview</SectionHeader>
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-            Preview
-          </p>
-          <div className="mt-2">
-            <FieldPreview field={selectedField} />
-          </div>
+          <FieldPreview field={selectedField} />
         </div>
+
+        {/* Danger zone: Delete field */}
+        {onDeleteField && (
+          <div className="mt-2 border-t border-gray-100 pt-4">
+            <button
+              type="button"
+              onClick={() => onDeleteField(selectedField.id)}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:border-red-300 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3.5 w-3.5"
+                aria-hidden
+              >
+                <path d="M3 6h18" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+              </svg>
+              Delete field
+            </button>
+          </div>
+        )}
       </div>
     </aside>
+  );
+}
+
+// --- Section header (small caps divider used inside the panel) ----------
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-3 mt-5 text-[10px] font-semibold uppercase tracking-wider text-gray-500 first:mt-0">
+      {children}
+    </p>
   );
 }
 
