@@ -11,7 +11,6 @@ import FieldLibraryPanel, {
 import FieldSettingsPanel from "@/components/builder/field-settings-panel";
 import FormLivePreview from "@/components/builder/form-live-preview";
 import SortableFieldList from "@/components/builder/sortable-field-list";
-import PageContainer from "@/components/page-container";
 
 import { supabase } from "@/lib/supabase";
 
@@ -499,29 +498,29 @@ export default function EditFormPage({ params }: EditFormPageProps) {
 
   if (isLoading) {
     return (
-      <PageContainer>
-        <div className="rounded-3xl border border-gray-200 bg-white p-12 text-center text-sm text-gray-500 shadow-sm">
+      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center text-sm text-gray-500 shadow-sm">
           Loading form...
         </div>
-      </PageContainer>
+      </div>
     );
   }
   if (loadError) {
     return (
-      <PageContainer>
+      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div
           role="alert"
-          className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm text-red-600"
+          className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-600"
         >
           {loadError}
         </div>
-      </PageContainer>
+      </div>
     );
   }
   if (!loadedForm) {
     return (
-      <PageContainer>
-        <div className="rounded-3xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
           <h1 className="text-xl font-semibold text-black">Form not found.</h1>
           <div className="mt-6 flex justify-center">
             <ButtonLink href="/dashboard" variant="secondary">
@@ -529,7 +528,7 @@ export default function EditFormPage({ params }: EditFormPageProps) {
             </ButtonLink>
           </div>
         </div>
-      </PageContainer>
+      </div>
     );
   }
 

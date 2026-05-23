@@ -1,13 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
-import {
-  ChatIcon,
-  FormIcon,
-  InboxIcon,
-  LayersIcon,
-  PhoneIcon,
-} from "@/components/landing/icons";
+import { useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadFieldImage } from "@/lib/upload-field-image";
 
@@ -24,15 +17,50 @@ const items: {
   value: FieldTypeOption;
   label: string;
   desc: string;
-  emoji: string;
+  icon: ReactNode;
 }[] = [
-  { value: "short_text", label: "Short Text", desc: "One-line answer", emoji: "✍️" },
-  { value: "long_text", label: "Long Text", desc: "Multi-line answer", emoji: "📝" },
-  { value: "phone", label: "Phone", desc: "Phone number input", emoji: "📞" },
-  { value: "email", label: "Email", desc: "Email address input", emoji: "✉️" },
-  { value: "number", label: "Number", desc: "Numeric value", emoji: "🔢" },
-  { value: "date", label: "Date", desc: "Calendar picker", emoji: "📅" },
-  { value: "dropdown", label: "Dropdown", desc: "Choose one option", emoji: "▾" },
+  {
+    value: "short_text",
+    label: "Short Text",
+    desc: "One-line answer",
+    icon: <ShortTextIcon />,
+  },
+  {
+    value: "long_text",
+    label: "Long Text",
+    desc: "Multi-line answer",
+    icon: <LongTextIcon />,
+  },
+  {
+    value: "phone",
+    label: "Phone",
+    desc: "Phone number input",
+    icon: <PhoneFieldIcon />,
+  },
+  {
+    value: "email",
+    label: "Email",
+    desc: "Email address input",
+    icon: <EmailIcon />,
+  },
+  {
+    value: "number",
+    label: "Number",
+    desc: "Numeric value",
+    icon: <NumberIcon />,
+  },
+  {
+    value: "date",
+    label: "Date",
+    desc: "Calendar picker",
+    icon: <DateIcon />,
+  },
+  {
+    value: "dropdown",
+    label: "Dropdown",
+    desc: "Choose one option",
+    icon: <DropdownIcon />,
+  },
 ];
 
 type FieldLibraryPanelProps = {
@@ -254,9 +282,9 @@ export default function FieldLibraryPanel({
             >
               <span
                 aria-hidden
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-base transition-colors group-hover:bg-brand/10"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 transition-colors group-hover:bg-brand/10 group-hover:text-brand-dark"
               >
-                {item.emoji}
+                {item.icon}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-black">
@@ -277,28 +305,98 @@ export default function FieldLibraryPanel({
         ))}
       </ul>
 
-      {/* Subtle stat row to make the panel feel substantive */}
-      <div className="mt-5 grid grid-cols-2 gap-2 border-t border-gray-100 pt-4 text-[11px] text-gray-500">
-        <div className="flex items-center gap-1.5">
-          <LayersIcon className="h-3.5 w-3.5 text-brand-dark" />7 field types
-        </div>
-        <div className="flex items-center gap-1.5">
-          <ChatIcon className="h-3.5 w-3.5 text-brand-dark" />
-          WhatsApp ready
-        </div>
-        <div className="flex items-center gap-1.5">
-          <FormIcon className="h-3.5 w-3.5 text-brand-dark" />
-          Mobile friendly
-        </div>
-        <div className="flex items-center gap-1.5">
-          <InboxIcon className="h-3.5 w-3.5 text-brand-dark" />
-          Saves automatically
-        </div>
-        <div className="col-span-2 flex items-center gap-1.5">
-          <PhoneIcon className="h-3.5 w-3.5 text-brand-dark" />
-          Built for WhatsApp leads
-        </div>
+      {/* Tip footer */}
+      <div className="mt-5 rounded-xl border border-gray-100 bg-gray-50 p-3 text-[11px] leading-relaxed text-gray-500">
+        Click any field type to add it to your form. Drag the grip handle on
+        a field card in the canvas to reorder.
       </div>
     </aside>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inline icons (replaces emoji per UI/UX skill rules)
+// ---------------------------------------------------------------------------
+
+const fieldIconClass = "h-4 w-4";
+
+function svgWrap(children: ReactNode) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={fieldIconClass}
+      aria-hidden
+    >
+      {children}
+    </svg>
+  );
+}
+
+function ShortTextIcon() {
+  return svgWrap(
+    <>
+      <path d="M3 7h18" />
+      <path d="M3 12h12" />
+    </>,
+  );
+}
+
+function LongTextIcon() {
+  return svgWrap(
+    <>
+      <path d="M3 6h18" />
+      <path d="M3 11h18" />
+      <path d="M3 16h12" />
+    </>,
+  );
+}
+
+function PhoneFieldIcon() {
+  return svgWrap(
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />,
+  );
+}
+
+function EmailIcon() {
+  return svgWrap(
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </>,
+  );
+}
+
+function NumberIcon() {
+  return svgWrap(
+    <>
+      <path d="M4 9h16" />
+      <path d="M4 15h16" />
+      <path d="M10 3 8 21" />
+      <path d="M16 3l-2 18" />
+    </>,
+  );
+}
+
+function DateIcon() {
+  return svgWrap(
+    <>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M3 10h18" />
+    </>,
+  );
+}
+
+function DropdownIcon() {
+  return svgWrap(
+    <>
+      <path d="M6 9l6 6 6-6" />
+    </>,
   );
 }

@@ -30,13 +30,13 @@ export default function BuilderShell({
   rightPanel,
 }: BuilderShellProps) {
   return (
-    <div className="-mx-4 min-h-[calc(100vh-4rem)] bg-gray-50 px-4 pb-12 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+    <div className="bg-gray-50 pb-12">
       {topbar}
 
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-5 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-5 px-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:px-8">
         {/* Left rail */}
         <div className="order-2 lg:order-1">
-          <div className="lg:sticky lg:top-[125px]">{leftPanel}</div>
+          <div className="lg:sticky lg:top-[150px]">{leftPanel}</div>
         </div>
 
         {/* Canvas */}
@@ -44,7 +44,7 @@ export default function BuilderShell({
 
         {/* Right rail */}
         <div className="order-3">
-          <div className="lg:sticky lg:top-[125px]">{rightPanel}</div>
+          <div className="lg:sticky lg:top-[150px]">{rightPanel}</div>
         </div>
       </div>
     </div>

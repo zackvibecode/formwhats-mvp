@@ -57,16 +57,16 @@ export default function BuilderTopbar({
   const responsesHref = formId ? `/dashboard/forms/${formId}/responses` : null;
 
   return (
-    <div className="sticky top-[57px] z-20 -mx-4 mb-4 border-b border-gray-200 bg-white/85 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="sticky top-16 z-10 mb-4 border-b border-gray-200 bg-white/85 py-3 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         {/* Left: back + title */}
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/dashboard"
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:border-gray-300 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
             aria-label="Back to Dashboard"
           >
-            <span aria-hidden>←</span>
+            <ChevronLeftIcon />
           </Link>
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
@@ -87,7 +87,7 @@ export default function BuilderTopbar({
             aria-current="page"
             className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 font-semibold text-brand-dark shadow-sm"
           >
-            <span aria-hidden>✏️</span>
+            <PencilIcon />
             Build
           </span>
           {previewSlug ? (
@@ -96,7 +96,7 @@ export default function BuilderTopbar({
               onClick={handlePreview}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-gray-500 transition-colors hover:text-black"
             >
-              <span aria-hidden>🔗</span>
+              <ShareIcon />
               Share
             </button>
           ) : (
@@ -104,7 +104,7 @@ export default function BuilderTopbar({
               title="Save the form first to share it"
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-gray-300"
             >
-              <span aria-hidden>🔗</span>
+              <ShareIcon />
               Share
             </span>
           )}
@@ -113,7 +113,7 @@ export default function BuilderTopbar({
               href={responsesHref}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-gray-500 transition-colors hover:text-black"
             >
-              <span aria-hidden>📥</span>
+              <InboxIcon />
               Responses
             </Link>
           ) : (
@@ -121,7 +121,7 @@ export default function BuilderTopbar({
               title="Save the form first to view responses"
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-gray-300"
             >
-              <span aria-hidden>📥</span>
+              <InboxIcon />
               Responses
             </span>
           )}
@@ -140,19 +140,137 @@ export default function BuilderTopbar({
           <button
             type="button"
             onClick={handlePreview}
-            className="inline-flex items-center justify-center gap-1 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-black transition-all hover:bg-gray-50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-black transition-all hover:bg-gray-50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
           >
-            <span aria-hidden>👁</span> Preview
+            <EyeIcon /> Preview
           </button>
           <button
             type="button"
             onClick={handleOpen}
-            className="inline-flex items-center justify-center gap-1 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-black transition-all hover:bg-gray-50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-black transition-all hover:bg-gray-50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
           >
-            <span aria-hidden>↗</span> Open
+            <ExternalLinkIcon /> Open
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inline icons (no emoji per UI/UX skill rules)
+// ---------------------------------------------------------------------------
+
+const iconClass = "h-3.5 w-3.5";
+const arrowClass = "h-4 w-4";
+
+function ChevronLeftIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={arrowClass}
+      aria-hidden
+    >
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={iconClass}
+      aria-hidden
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={iconClass}
+      aria-hidden
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="M8.59 13.51l6.83 3.98" />
+      <path d="M15.41 6.51l-6.82 3.98" />
+    </svg>
+  );
+}
+
+function InboxIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={iconClass}
+      aria-hidden
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 10h18" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={iconClass}
+      aria-hidden
+    >
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={iconClass}
+      aria-hidden
+    >
+      <path d="M10 14L21 3" />
+      <path d="M21 9V3h-6" />
+      <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+    </svg>
   );
 }
