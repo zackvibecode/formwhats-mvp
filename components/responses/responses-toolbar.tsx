@@ -69,7 +69,7 @@ export default function ResponsesToolbar({
   const deleteDisabled = selectedCount === 0 || isDeleting;
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-col gap-3 sm:gap-2 lg:flex-row lg:items-center lg:justify-between">
       {/* Left cluster: actions */}
       <div className="flex flex-wrap items-center gap-2">
         <button

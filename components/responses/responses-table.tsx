@@ -34,10 +34,10 @@ const PHONE_REGEX = /^\+?[0-9][0-9\s\-().]{6,}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const headerCellClass =
-  "sticky top-0 z-10 whitespace-nowrap bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500";
+  "sticky top-0 z-10 whitespace-nowrap border-b border-gray-200 bg-white px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500";
 
 const bodyCellClass =
-  "whitespace-nowrap border-t border-gray-100 px-4 py-3 text-sm text-black";
+  "whitespace-nowrap border-b border-r border-gray-100 px-5 py-5 text-sm text-black last:border-r-0";
 
 export default function ResponsesTable({
   responses,

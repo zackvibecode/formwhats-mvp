@@ -309,10 +309,10 @@ export default function ResponsesPage({ params }: ResponsesPageProps) {
   const hasFilteredResults = filteredResponses.length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <PageHeader form={form} />
 
-      <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-6 sm:px-6">
+      <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-5 sm:px-6">
         {banner && (
           <div
             role="status"
@@ -369,58 +369,112 @@ export default function ResponsesPage({ params }: ResponsesPageProps) {
 
 function PageHeader({ form }: { form: FormDetail }) {
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href="/dashboard"
-            aria-label="Back to Dashboard"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-black"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.75}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-              aria-hidden
+    <header className="bg-white">
+      {/* Row 1: back + title + secondary nav placeholders */}
+      <div className="border-b border-gray-100">
+        <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/dashboard"
+              aria-label="Back to Dashboard"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-700 transition hover:bg-gray-100"
             >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </Link>
-          <h1 className="truncate text-lg font-semibold tracking-tight text-black sm:text-xl">
-            {form.title}
-          </h1>
-        </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5"
+                aria-hidden
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </Link>
+            <h1 className="truncate text-base font-semibold uppercase tracking-wide text-black sm:text-lg">
+              {form.title}
+            </h1>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+          <div className="hidden items-center gap-5 text-sm text-gray-500 md:flex">
+            <span className="inline-flex items-center gap-1.5">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M2 12h20" />
+                <path d="M12 2a15.3 15.3 0 0 1 0 20" />
+                <path d="M12 2a15.3 15.3 0 0 0 0 20" />
+              </svg>
+              <span>EN</span>
+            </span>
+            <span>Help</span>
+            <span>Account</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: tabs (left) + Open / Settings (right) */}
+      <div className="border-b border-gray-200">
+        <div className="mx-auto flex w-full max-w-[1400px] flex-wrap items-end justify-between gap-3 px-4 sm:px-6">
           <Tabs formId={form.id} slug={form.slug} />
-          <Link
-            href={`/form/${form.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-black transition hover:bg-gray-50"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.75}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-              aria-hidden
+
+          <div className="flex items-center gap-2 py-2">
+            <Link
+              href={`/form/${form.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-black transition hover:bg-gray-50"
             >
-              <path d="M10 14L21 3" />
-              <path d="M21 9V3h-6" />
-              <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
-            </svg>
-            Open
-          </Link>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden
+              >
+                <path d="M10 14L21 3" />
+                <path d="M21 9V3h-6" />
+                <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+              </svg>
+              Open
+            </Link>
+            <button
+              type="button"
+              onClick={() => window.alert("Settings will be added later.")}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.36.16.66.43.86.79a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              Settings
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -429,13 +483,30 @@ function PageHeader({ form }: { form: FormDetail }) {
 
 function Tabs({ formId, slug }: { formId: string; slug: string }) {
   const tabBase =
-    "inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition";
-  const inactive = `${tabBase} text-gray-600 hover:bg-gray-100 hover:text-black`;
-  const active = `${tabBase} bg-brand/10 text-brand-dark`;
+    "inline-flex items-center gap-2 border-b-2 px-2 py-3 text-sm font-medium transition";
+  const inactive = `${tabBase} border-transparent text-gray-600 hover:text-black`;
+  const active = `${tabBase} border-brand text-black`;
 
   return (
-    <nav className="flex items-center gap-1" aria-label="Form sections">
+    <nav
+      className="flex items-center gap-6 sm:gap-8"
+      aria-label="Form sections"
+    >
       <Link href={`/dashboard/forms/${formId}/edit`} className={inactive}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4"
+          aria-hidden
+        >
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+        </svg>
         Build
       </Link>
       <Link
@@ -444,9 +515,40 @@ function Tabs({ formId, slug }: { formId: string; slug: string }) {
         rel="noopener noreferrer"
         className={inactive}
       >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4"
+          aria-hidden
+        >
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="M8.59 13.51l6.83 3.98" />
+          <path d="M15.41 6.51l-6.82 3.98" />
+        </svg>
         Share
       </Link>
       <span className={active} aria-current="page">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4"
+          aria-hidden
+        >
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M3 10h18" />
+        </svg>
         Responses
       </span>
     </nav>
